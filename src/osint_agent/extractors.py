@@ -67,9 +67,9 @@ class IOCPatterns:
     # CVE - standard format
     CVE = re.compile(r"\bCVE-\d{4}-\d{4,7}\b", re.IGNORECASE)
 
-    # URL - supports defanged hxxp(s)
+    # URL - supports defanged hxxp(s) and [.] notation
     URL = re.compile(
-        r"(?:https?|hxxps?|ftp|ftps)://[^\s<>\"'\]]+",
+        r"(?:https?|hxxps?|ftp|ftps)://[^\s<>\"']+",
         re.IGNORECASE,
     )
 
