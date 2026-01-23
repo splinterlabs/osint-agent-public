@@ -129,21 +129,27 @@ cd "$STAGING_DIR"
 git init -q
 git remote add public "$PUBLIC_REPO_URL"
 
+# Configure git for this operation
+git config user.email "sync@localhost"
+git config user.name "Sync Script"
+
 # Try to fetch existing public repo
 echo -e "${YELLOW}Fetching public repo...${NC}"
 if git fetch public "$PUBLIC_BRANCH" 2>/dev/null; then
-    git checkout -b sync-branch "public/$PUBLIC_BRANCH"
+    echo "Public branch exists, will update..."
 
-    # Remove all tracked files and re-add from staging
-    git rm -rf . --quiet 2>/dev/null || true
+    # Create initial commit with staged files
+    git add -A
+    git commit -m "Staged files" --allow-empty -q
 
-    # Copy staged files back
-    rsync -av "${EXCLUDE_ARGS[@]}" "$PROJECT_ROOT/" "$STAGING_DIR/" --delete
+    # Now reset to match public branch history
+    git fetch public "$PUBLIC_BRANCH"
+    git reset --soft "public/$PUBLIC_BRANCH"
 
+    # Re-add all files (this stages only the differences)
     git add -A
 else
     echo "Public branch doesn't exist yet, creating..."
-    git checkout -b "$PUBLIC_BRANCH"
     git add -A
 fi
 
