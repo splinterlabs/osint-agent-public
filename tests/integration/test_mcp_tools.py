@@ -125,7 +125,7 @@ class TestNVDTools:
         nvd_tools.register_tools(mcp)
 
         # Reset singleton to use fresh client
-        nvd_tools._client = None
+        nvd_tools.get_client.cache_clear()
 
         result = mcp.tools["lookup_cve"]("CVE-2024-1234")
 
@@ -146,7 +146,7 @@ class TestNVDTools:
 
         mcp = MockFastMCP()
         nvd_tools.register_tools(mcp)
-        nvd_tools._client = None
+        nvd_tools.get_client.cache_clear()
 
         result = mcp.tools["lookup_cve"]("CVE-9999-99999")
 
@@ -193,7 +193,7 @@ class TestKEVTools:
 
         mcp = MockFastMCP()
         kev_tools.register_tools(mcp)
-        kev_tools._client = None
+        kev_tools.get_client.cache_clear()
 
         result = mcp.tools["check_kev"]("CVE-2024-1234")
 
@@ -214,7 +214,7 @@ class TestKEVTools:
 
         mcp = MockFastMCP()
         kev_tools.register_tools(mcp)
-        kev_tools._client = None
+        kev_tools.get_client.cache_clear()
 
         result = mcp.tools["check_kev"]("CVE-9999-99999")
 

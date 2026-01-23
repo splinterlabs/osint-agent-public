@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from .credentials import delete_api_key, print_key_status, set_api_key, KEYS
+from .keymanager import delete_api_key, print_key_status, set_api_key, KEYS
 
 
 def cmd_keys(args: argparse.Namespace) -> int:

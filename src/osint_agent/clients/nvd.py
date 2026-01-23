@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-from ..credentials import get_api_key
+from ..keymanager import get_api_key
 from .base import BaseClient
 
 

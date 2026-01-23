@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
+from functools import lru_cache
 
 from mcp.server.fastmcp import FastMCP
 
@@ -12,16 +12,11 @@ from osint_agent.clients.nvd import NVDClient
 
 logger = logging.getLogger("osint-mcp.nvd")
 
-# Lazy singleton
-_client: Optional[NVDClient] = None
 
-
+@lru_cache(maxsize=1)
 def get_client() -> NVDClient:
-    """Get or create NVD client singleton."""
-    global _client
-    if _client is None:
-        _client = NVDClient()
-    return _client
+    """Get or create NVD client singleton (thread-safe via lru_cache)."""
+    return NVDClient()
 
 
 def register_tools(mcp: FastMCP) -> None:
