@@ -1,12 +1,98 @@
 """Base client with common functionality for all API clients."""
 
 import logging
+import os
 import time
 from typing import Any, Optional
 
 import requests
 
 logger = logging.getLogger(__name__)
+
+
+class ProxyConfig:
+    """Proxy configuration with environment variable and explicit support."""
+
+    def __init__(
+        self,
+        http_proxy: Optional[str] = None,
+        https_proxy: Optional[str] = None,
+        no_proxy: Optional[list[str]] = None,
+        enabled: bool = True,
+    ):
+        """Initialize proxy configuration.
+
+        Args:
+            http_proxy: HTTP proxy URL (e.g., http://proxy:8080 or socks5://proxy:1080)
+            https_proxy: HTTPS proxy URL
+            no_proxy: List of domains to bypass proxy
+            enabled: Whether proxy is enabled
+        """
+        self.enabled = enabled
+        self._http_proxy = http_proxy
+        self._https_proxy = https_proxy
+        self._no_proxy = no_proxy or []
+
+    @property
+    def http_proxy(self) -> Optional[str]:
+        """Get HTTP proxy from config or environment."""
+        if not self.enabled:
+            return None
+        return self._http_proxy or os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
+
+    @property
+    def https_proxy(self) -> Optional[str]:
+        """Get HTTPS proxy from config or environment."""
+        if not self.enabled:
+            return None
+        return self._https_proxy or os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
+
+    @property
+    def no_proxy(self) -> list[str]:
+        """Get no-proxy list from config or environment."""
+        if self._no_proxy:
+            return self._no_proxy
+        env_no_proxy = os.environ.get("NO_PROXY") or os.environ.get("no_proxy")
+        if env_no_proxy:
+            return [d.strip() for d in env_no_proxy.split(",")]
+        return []
+
+    def get_proxies(self) -> dict[str, str]:
+        """Get proxies dict for requests library."""
+        if not self.enabled:
+            return {}
+        proxies = {}
+        if self.http_proxy:
+            proxies["http"] = self.http_proxy
+        if self.https_proxy:
+            proxies["https"] = self.https_proxy
+        return proxies
+
+    def should_bypass(self, url: str) -> bool:
+        """Check if URL should bypass proxy."""
+        if not self.no_proxy:
+            return False
+        from urllib.parse import urlparse
+
+        hostname = urlparse(url).hostname or ""
+        for pattern in self.no_proxy:
+            if pattern.startswith("."):
+                # Suffix match: .example.com matches foo.example.com
+                if hostname.endswith(pattern) or hostname == pattern[1:]:
+                    return True
+            elif hostname == pattern or hostname.endswith(f".{pattern}"):
+                return True
+        return False
+
+    @classmethod
+    def from_dict(cls, config: dict) -> "ProxyConfig":
+        """Create ProxyConfig from dictionary."""
+        return cls(
+            http_proxy=config.get("http_proxy"),
+            https_proxy=config.get("https_proxy"),
+            no_proxy=config.get("no_proxy"),
+            enabled=config.get("enabled", True),
+        )
 
 
 class APIError(Exception):
@@ -37,9 +123,15 @@ class BaseClient:
     MAX_RETRIES: int = 3
     BACKOFF_BASE: float = 1.0
 
-    def __init__(self, api_key: Optional[str] = None, timeout: Optional[int] = None):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        timeout: Optional[int] = None,
+        proxy: Optional[ProxyConfig] = None,
+    ):
         self.api_key = api_key
         self.timeout = timeout or self.DEFAULT_TIMEOUT
+        self.proxy = proxy or ProxyConfig()
         self.session = requests.Session()
         self._setup_session()
 
@@ -68,6 +160,11 @@ class BaseClient:
         url = f"{self.BASE_URL}{endpoint}"
         headers = {**self._get_headers(), **kwargs.pop("headers", {})}
 
+        # Configure proxy unless bypassed for this URL
+        proxies = {}
+        if self.proxy and not self.proxy.should_bypass(url):
+            proxies = self.proxy.get_proxies()
+
         last_exception: Optional[Exception] = None
 
         for attempt in range(self.MAX_RETRIES):
@@ -79,6 +176,7 @@ class BaseClient:
                     json=json_data,
                     headers=headers,
                     timeout=self.timeout,
+                    proxies=proxies,
                     **kwargs,
                 )
 
