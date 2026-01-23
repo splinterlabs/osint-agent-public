@@ -68,6 +68,16 @@ data/campaigns/*
 data/iocs.db
 data/rate_limits.db
 
+# MCP server data (runtime generated)
+mcp-server/data/
+
+# Reports output directory
+reports/*
+!reports/.gitkeep
+
+# User-specific watchlist (use watchlist.example.json as template)
+config/watchlist.json
+
 # Claude Code hook data
 .claude/data/cache/*
 !.claude/data/cache/.gitkeep
