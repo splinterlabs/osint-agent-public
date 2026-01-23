@@ -1,5 +1,7 @@
 """AlienVault OTX (Open Threat Exchange) API client."""
 
+from __future__ import annotations
+
 from typing import Any, Optional
 
 from ..credentials import get_api_key

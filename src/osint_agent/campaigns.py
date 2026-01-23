@@ -4,6 +4,8 @@ Provides infrastructure for tracking threat campaigns, linking IOCs,
 and managing investigation lifecycle.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import uuid

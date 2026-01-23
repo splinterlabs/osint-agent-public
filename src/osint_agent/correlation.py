@@ -4,6 +4,8 @@ Correlates IOCs across sources, maps behaviors to ATT&CK techniques,
 and identifies related indicators.
 """
 
+from __future__ import annotations
+
 import logging
 import re
 from collections import defaultdict
