@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "last_updated": "2024-01-23T00:00:00Z",
+  "description": "Mission-duration context - current investigation or project",
+  "current_investigation": {
+    "name": "",
+    "description": "",
+    "started": "",
+    "status": "inactive",
+    "priority": "normal"
+  },
+  "scope": {
+    "target_entities": [],
+    "time_range": {
+      "start": "",
+      "end": ""
+    },
+    "geographic_scope": [],
+    "data_sources": []
+  },
+  "findings": {
+    "confirmed_iocs": [],
+    "suspected_iocs": [],
+    "threat_actors": [],
+    "vulnerabilities": [],
+    "ttps": []
+  },
+  "stakeholders": [],
+  "notes": []
+}

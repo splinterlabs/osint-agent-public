@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "last_updated": "2024-01-23T00:00:00Z",
+  "description": "Long-term strategic context - persistent across all sessions",
+  "threat_landscape": {
+    "priority_threat_actors": [],
+    "active_campaigns": [],
+    "industry_focus": [],
+    "geographic_focus": []
+  },
+  "organizational_context": {
+    "industry": "",
+    "critical_assets": [],
+    "technology_stack": [],
+    "compliance_requirements": []
+  },
+  "intelligence_requirements": {
+    "priority_questions": [],
+    "collection_focus": [],
+    "reporting_cadence": "daily"
+  },
+  "notes": []
+}
