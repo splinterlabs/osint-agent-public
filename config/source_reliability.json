@@ -1,0 +1,62 @@
+{
+  "reliability_codes": {
+    "A": {
+      "label": "Completely Reliable",
+      "description": "Official government sources, established CERTs",
+      "examples": ["CISA", "NVD", "MITRE", "US-CERT", "NCSC"],
+      "weight": 1.0
+    },
+    "B": {
+      "label": "Usually Reliable",
+      "description": "Established security vendors and researchers",
+      "examples": ["Microsoft", "Cisco Talos", "Mandiant", "CrowdStrike", "Recorded Future"],
+      "weight": 0.85
+    },
+    "C": {
+      "label": "Fairly Reliable",
+      "description": "Reputable security blogs and independent researchers",
+      "examples": ["Krebs on Security", "BleepingComputer", "The Record", "known researchers"],
+      "weight": 0.7
+    },
+    "D": {
+      "label": "Not Usually Reliable",
+      "description": "Unverified social media, forums",
+      "examples": ["Anonymous Twitter accounts", "Reddit posts", "Pastebin"],
+      "weight": 0.4
+    },
+    "E": {
+      "label": "Unreliable",
+      "description": "Anonymous sources, known disinformation",
+      "examples": ["Anonymous tips", "unverified leaks"],
+      "weight": 0.1
+    },
+    "F": {
+      "label": "Cannot Be Judged",
+      "description": "New or unknown sources",
+      "examples": ["First-time sources", "unclear provenance"],
+      "weight": 0.3
+    }
+  },
+  "credibility_codes": {
+    "1": {"label": "Confirmed", "description": "Confirmed by multiple independent sources", "min_sources": 3},
+    "2": {"label": "Probably True", "description": "Logical, consistent with known facts", "min_sources": 2},
+    "3": {"label": "Possibly True", "description": "Reasonable but not confirmed", "min_sources": 1},
+    "4": {"label": "Doubtful", "description": "Inconsistent or questionable details"},
+    "5": {"label": "Improbable", "description": "Contradicts established facts"},
+    "6": {"label": "Cannot Be Judged", "description": "Insufficient information to assess"}
+  },
+  "source_mappings": {
+    "services.nvd.nist.gov": {"reliability": "A", "type": "official"},
+    "cisa.gov": {"reliability": "A", "type": "official"},
+    "cveawg.mitre.org": {"reliability": "A", "type": "official"},
+    "msrc.microsoft.com": {"reliability": "B", "type": "vendor"},
+    "sec.cloudapps.cisco.com": {"reliability": "B", "type": "vendor"},
+    "www.virustotal.com": {"reliability": "B", "type": "aggregator"},
+    "otx.alienvault.com": {"reliability": "B", "type": "threat_intel"},
+    "urlhaus.abuse.ch": {"reliability": "B", "type": "threat_intel"},
+    "bazaar.abuse.ch": {"reliability": "B", "type": "threat_intel"},
+    "www.bleepingcomputer.com": {"reliability": "C", "type": "news"},
+    "therecord.media": {"reliability": "C", "type": "news"},
+    "krebsonsecurity.com": {"reliability": "C", "type": "blog"}
+  }
+}
