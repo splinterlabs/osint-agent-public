@@ -1,0 +1,99 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Lock files (users generate their own)
+uv.lock
+
+# mypy
+.mypy_cache/
+
+# Secrets - NEVER commit these
+.env
+.env.local
+.env.*.local
+api_keys.*
+secrets.*
+credentials.*
+!.env.example
+
+# Data files (contain potentially sensitive IOCs)
+data/cache/*
+!data/cache/.gitkeep
+!data/cache/attack/
+data/cache/attack/*
+!data/cache/attack/.gitkeep
+data/logs/*.jsonl
+data/context/*
+!data/context/.gitkeep
+data/campaigns/*
+!data/campaigns/.gitkeep
+data/iocs.db
+data/rate_limits.db
+
+# Claude Code hook data
+.claude/data/cache/*
+!.claude/data/cache/.gitkeep
+.claude/data/logs/*.jsonl
+
+# Internal docs
+OSINT_AGENT_PROPOSAL.md
+INTERNAL_*.md
+
+# Private directory (not synced to public)
+# Keep proprietary features, internal intel here
+.private/
+*.private.*
+
+# Sync configuration (contains repo URLs)
+.sync-config
+
+# Backups
+backups/*
+!backups/.gitkeep
+
+# Coverage
+coverage.xml
+
+# Ruff
+.ruff_cache/
+
+# Keep directory structure
+!**/.gitkeep
