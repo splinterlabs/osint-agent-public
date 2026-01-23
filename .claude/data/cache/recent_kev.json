@@ -1,0 +1,35 @@
+{
+  "value": [
+    {
+      "cve_id": "CVE-2025-68645",
+      "vendor": "Synacor",
+      "product": " Zimbra Collaboration Suite (ZCS)",
+      "due_date": "2026-02-12"
+    },
+    {
+      "cve_id": "CVE-2025-34026",
+      "vendor": "Versa",
+      "product": "Concerto",
+      "due_date": "2026-02-12"
+    },
+    {
+      "cve_id": "CVE-2025-31125",
+      "vendor": "Vite",
+      "product": "Vitejs",
+      "due_date": "2026-02-12"
+    },
+    {
+      "cve_id": "CVE-2025-54313",
+      "vendor": "Prettier",
+      "product": "eslint-config-prettier",
+      "due_date": "2026-02-12"
+    },
+    {
+      "cve_id": "CVE-2026-20045",
+      "vendor": "Cisco",
+      "product": "Unified Communications Manager",
+      "due_date": "2026-02-11"
+    }
+  ],
+  "cached_at": "2026-01-23T12:56:04.988022"
+}
