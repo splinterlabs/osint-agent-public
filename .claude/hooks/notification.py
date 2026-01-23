@@ -5,8 +5,12 @@ import json
 import logging
 import subprocess
 import sys
+import warnings
 from datetime import datetime
 from pathlib import Path
+
+# Suppress datetime.utcnow() deprecation warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*utcnow.*")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

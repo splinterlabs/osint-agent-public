@@ -5,8 +5,12 @@ import json
 import logging
 import sqlite3
 import sys
+import warnings
 from datetime import datetime
 from pathlib import Path
+
+# Suppress datetime.utcnow() deprecation warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*utcnow.*")
 
 # Project root is 3 levels up from .claude/hooks/
 PROJECT_ROOT = Path(__file__).parent.parent.parent
