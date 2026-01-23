@@ -40,6 +40,7 @@ from tools import context_tools
 from tools import shodan_tools
 from tools import attack_tools
 from tools import campaign_tools
+from tools import health_tools
 
 nvd_tools.register_tools(mcp)
 kev_tools.register_tools(mcp)
@@ -52,6 +53,7 @@ context_tools.register_tools(mcp)
 shodan_tools.register_tools(mcp)
 attack_tools.register_tools(mcp)
 campaign_tools.register_tools(mcp)
+health_tools.register_tools(mcp)
 
 # To add a new source:
 # 1. Create tools/new_source_tools.py with register_tools(mcp) function

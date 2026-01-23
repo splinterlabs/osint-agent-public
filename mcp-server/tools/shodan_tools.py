@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from osint_agent.clients.shodan import ShodanClient
-from osint_agent.credentials import get_api_key
+from osint_agent.keymanager import get_api_key
 
 
 def get_shodan_client() -> ShodanClient:

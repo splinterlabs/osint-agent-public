@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Optional
+from functools import lru_cache
 
 from mcp.server.fastmcp import FastMCP
 
@@ -10,16 +10,11 @@ from osint_agent.clients.otx import OTXClient
 
 logger = logging.getLogger("osint-mcp.otx")
 
-# Lazy singleton
-_client: Optional[OTXClient] = None
 
-
+@lru_cache(maxsize=1)
 def get_client() -> OTXClient:
-    """Get or create OTX client singleton."""
-    global _client
-    if _client is None:
-        _client = OTXClient()
-    return _client
+    """Get or create OTX client singleton (thread-safe via lru_cache)."""
+    return OTXClient()
 
 
 def register_tools(mcp: FastMCP) -> None:

@@ -124,16 +124,19 @@ class BaseClient:
     DEFAULT_TIMEOUT: int = 30
     MAX_RETRIES: int = 3
     BACKOFF_BASE: float = 1.0
+    DEFAULT_USER_AGENT: str = "OSINT-Agent/0.1.0"
 
     def __init__(
         self,
         api_key: Optional[str] = None,
         timeout: Optional[int] = None,
         proxy: Optional[ProxyConfig] = None,
+        user_agent: Optional[str] = None,
     ):
         self.api_key = api_key
         self.timeout = timeout or self.DEFAULT_TIMEOUT
         self.proxy = proxy or ProxyConfig()
+        self.user_agent = user_agent or os.environ.get("OSINT_USER_AGENT") or self.DEFAULT_USER_AGENT
         self.session = requests.Session()
         self._setup_session()
 
@@ -141,7 +144,7 @@ class BaseClient:
         """Configure session with default headers."""
         self.session.headers.update(
             {
-                "User-Agent": "OSINT-Agent/0.1.0",
+                "User-Agent": self.user_agent,
                 "Accept": "application/json",
             }
         )
