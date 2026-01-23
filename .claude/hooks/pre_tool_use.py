@@ -25,9 +25,12 @@ from urllib.parse import urlparse
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
+# Project root is 3 levels up from .claude/hooks/
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+
 # Configuration paths
-CONFIG_DIR = Path(__file__).parent.parent / "config"
-DATA_DIR = Path(__file__).parent.parent / "data"
+CONFIG_DIR = PROJECT_ROOT / "config"
+DATA_DIR = PROJECT_ROOT / "data"
 ALLOWED_DOMAINS_PATH = CONFIG_DIR / "allowed_domains.json"
 RATE_LIMIT_DB_PATH = DATA_DIR / "rate_limits.db"
 BLOCKED_LOG_PATH = DATA_DIR / "logs" / "blocked_requests.jsonl"
