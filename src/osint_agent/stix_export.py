@@ -383,6 +383,21 @@ def create_relationship(
 # =============================================================================
 
 
+def escape_stix_pattern_value(value: str) -> str:
+    """Escape special characters in STIX pattern values.
+
+    STIX patterns use single quotes for string values. Characters that need
+    escaping: backslash (\\), single quote ('), and other special chars.
+
+    Reference: STIX 2.1 Pattern Grammar
+    """
+    # Escape backslashes first (before other escapes add more)
+    value = value.replace("\\", "\\\\")
+    # Escape single quotes
+    value = value.replace("'", "\\'")
+    return value
+
+
 def iocs_to_stix_bundle(
     iocs: dict[str, list[str]],
     labels: Optional[list[str]] = None,
@@ -405,8 +420,9 @@ def iocs_to_stix_bundle(
         obs = create_ipv4_observable(ipv4, labels)
         bundle.add(obs)
         if create_indicators:
+            escaped_ip = escape_stix_pattern_value(ipv4)
             indicator = create_indicator(
-                pattern=f"[ipv4-addr:value = '{ipv4}']",
+                pattern=f"[ipv4-addr:value = '{escaped_ip}']",
                 name=f"IP: {ipv4}",
                 labels=labels,
             )
@@ -417,8 +433,9 @@ def iocs_to_stix_bundle(
         obs = create_ipv6_observable(ipv6, labels)
         bundle.add(obs)
         if create_indicators:
+            escaped_ip = escape_stix_pattern_value(ipv6)
             indicator = create_indicator(
-                pattern=f"[ipv6-addr:value = '{ipv6}']",
+                pattern=f"[ipv6-addr:value = '{escaped_ip}']",
                 name=f"IPv6: {ipv6}",
                 labels=labels,
             )
@@ -429,8 +446,9 @@ def iocs_to_stix_bundle(
         obs = create_domain_observable(domain, labels)
         bundle.add(obs)
         if create_indicators:
+            escaped_domain = escape_stix_pattern_value(domain)
             indicator = create_indicator(
-                pattern=f"[domain-name:value = '{domain}']",
+                pattern=f"[domain-name:value = '{escaped_domain}']",
                 name=f"Domain: {domain}",
                 labels=labels,
             )
@@ -441,11 +459,10 @@ def iocs_to_stix_bundle(
         obs = create_url_observable(url, labels)
         bundle.add(obs)
         if create_indicators:
-            # Escape single quotes in URL for STIX pattern
-            escaped_url = url.replace("'", "\\'")
+            escaped_url = escape_stix_pattern_value(url)
             indicator = create_indicator(
                 pattern=f"[url:value = '{escaped_url}']",
-                name=f"URL: {url[:50]}...",
+                name=f"URL: {url[:50]}{'...' if len(url) > 50 else ''}",
                 labels=labels,
             )
             bundle.add(indicator)
@@ -457,8 +474,9 @@ def iocs_to_stix_bundle(
             bundle.add(obs)
             if create_indicators:
                 stix_hash_type = {"md5": "MD5", "sha1": "SHA-1", "sha256": "SHA-256"}[hash_type]
+                escaped_hash = escape_stix_pattern_value(hash_value)
                 indicator = create_indicator(
-                    pattern=f"[file:hashes.'{stix_hash_type}' = '{hash_value}']",
+                    pattern=f"[file:hashes.'{stix_hash_type}' = '{escaped_hash}']",
                     name=f"{hash_type.upper()}: {hash_value[:16]}...",
                     labels=labels,
                 )
