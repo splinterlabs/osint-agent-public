@@ -1,0 +1,37 @@
+{
+  "vendors": [
+    "Microsoft",
+    "Cisco",
+    "Fortinet",
+    "Palo Alto Networks",
+    "VMware",
+    "Citrix",
+    "Ivanti",
+    "Juniper"
+  ],
+  "products": [
+    "Windows Server",
+    "Exchange Server",
+    "FortiGate",
+    "FortiOS",
+    "PAN-OS",
+    "vCenter Server",
+    "ESXi",
+    "Citrix ADC",
+    "Pulse Secure"
+  ],
+  "cpe_patterns": [
+    "cpe:2.3:o:microsoft:windows_server:*",
+    "cpe:2.3:a:microsoft:exchange_server:*",
+    "cpe:2.3:a:cisco:ios_xe:*",
+    "cpe:2.3:o:fortinet:fortios:*",
+    "cpe:2.3:o:paloaltonetworks:pan-os:*"
+  ],
+  "keywords": [
+    "remote code execution",
+    "authentication bypass",
+    "privilege escalation",
+    "zero-day",
+    "actively exploited"
+  ]
+}

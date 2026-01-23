@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "last_updated": "2024-01-23",
+  "domains": {
+    "nvd.nist.gov": {"category": "vuln_db", "rate_limit": 50, "window_seconds": 30},
+    "services.nvd.nist.gov": {"category": "vuln_db", "rate_limit": 50, "window_seconds": 30},
+    "cve.org": {"category": "vuln_db", "rate_limit": 60, "window_seconds": 60},
+    "cveawg.mitre.org": {"category": "vuln_db", "rate_limit": 60, "window_seconds": 60},
+    "cisa.gov": {"category": "official", "rate_limit": 30, "window_seconds": 60},
+    "www.cisa.gov": {"category": "official", "rate_limit": 30, "window_seconds": 60},
+    "otx.alienvault.com": {"category": "threat_intel", "rate_limit": 100, "window_seconds": 60},
+    "urlhaus.abuse.ch": {"category": "threat_intel", "rate_limit": 60, "window_seconds": 60},
+    "urlhaus-api.abuse.ch": {"category": "threat_intel", "rate_limit": 60, "window_seconds": 60},
+    "bazaar.abuse.ch": {"category": "threat_intel", "rate_limit": 60, "window_seconds": 60},
+    "mb-api.abuse.ch": {"category": "threat_intel", "rate_limit": 60, "window_seconds": 60},
+    "threatfox.abuse.ch": {"category": "threat_intel", "rate_limit": 60, "window_seconds": 60},
+    "threatfox-api.abuse.ch": {"category": "threat_intel", "rate_limit": 60, "window_seconds": 60},
+    "www.virustotal.com": {"category": "reputation", "rate_limit": 4, "window_seconds": 60},
+    "api.shodan.io": {"category": "exposure", "rate_limit": 10, "window_seconds": 60},
+    "api.abuseipdb.com": {"category": "reputation", "rate_limit": 60, "window_seconds": 60},
+    "bleepingcomputer.com": {"category": "news", "rate_limit": 10, "window_seconds": 60},
+    "www.bleepingcomputer.com": {"category": "news", "rate_limit": 10, "window_seconds": 60},
+    "therecord.media": {"category": "news", "rate_limit": 10, "window_seconds": 60},
+    "krebsonsecurity.com": {"category": "news", "rate_limit": 10, "window_seconds": 60}
+  },
+  "admin_notes": "To add domains: edit this file. Use 'osint domains add <domain>' for CLI."
+}

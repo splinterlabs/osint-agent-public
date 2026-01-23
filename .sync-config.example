@@ -1,0 +1,8 @@
+# Sync configuration for private → public repo
+# Copy to .sync-config and fill in values
+
+# Public repository URL (required)
+PUBLIC_REPO_URL=https://github.com/splinterlabs/osint-agent.git
+
+# Branch to sync to (default: main)
+PUBLIC_BRANCH=main
