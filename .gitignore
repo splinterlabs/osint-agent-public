@@ -43,20 +43,34 @@ htmlcov/
 .mypy_cache/
 
 # Secrets - NEVER commit these
-*.env
-.env.*
+.env
+.env.local
+.env.*.local
 api_keys.*
 secrets.*
 credentials.*
+!.env.example
 
 # Data files (contain potentially sensitive IOCs)
 data/cache/
 data/logs/*.jsonl
 data/context/tactical.json
 data/iocs.db
+data/rate_limits.db
+
+# Claude Code hook data
+.claude/data/cache/
+.claude/data/logs/*.jsonl
 
 # Backups
-backups/
+backups/*
+!backups/.gitkeep
+
+# Coverage
+coverage.xml
+
+# Ruff
+.ruff_cache/
 
 # Keep directory structure
 !**/.gitkeep
