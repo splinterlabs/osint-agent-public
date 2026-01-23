@@ -2,5 +2,6 @@
 
 from .nvd import NVDClient
 from .cisa_kev import CISAKEVClient
+from .otx import OTXClient
 
-__all__ = ["NVDClient", "CISAKEVClient"]
+__all__ = ["NVDClient", "CISAKEVClient", "OTXClient"]
