@@ -35,7 +35,7 @@ from osint_agent.clients.nvd import NVDClient
 from osint_agent.clients.cisa_kev import CISAKEVClient
 from osint_agent.cache import ThreatContextCache
 
-logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
 # Configuration

@@ -12,7 +12,7 @@ from pathlib import Path
 # Suppress datetime.utcnow() deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*utcnow.*")
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Project root is 3 levels up from .claude/hooks/
