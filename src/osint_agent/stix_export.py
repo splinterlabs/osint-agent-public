@@ -8,6 +8,8 @@ OpenCTI uses the STIX 2.1 standard for its data model:
 Reference: https://docs.opencti.io/latest/usage/data-model/
 """
 
+from __future__ import annotations
+
 import hashlib
 import json
 import uuid

@@ -11,6 +11,8 @@ Tiers:
 5. SECURITY - Data handling rules, source sensitivity, sharing boundaries
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime

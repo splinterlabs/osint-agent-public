@@ -1,5 +1,7 @@
 """TTL-based file cache for API responses."""
 
+from __future__ import annotations
+
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
