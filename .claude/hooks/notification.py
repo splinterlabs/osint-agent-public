@@ -11,8 +11,11 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Project root is 3 levels up from .claude/hooks/
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+
 # Configuration
-ALERT_LOG_PATH = Path(__file__).parent.parent / "data" / "logs" / "alerts.jsonl"
+ALERT_LOG_PATH = PROJECT_ROOT / "data" / "logs" / "alerts.jsonl"
 
 CRITICAL_KEYWORDS = [
     "cvss 9",
