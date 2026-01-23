@@ -1,5 +1,7 @@
 """YARA and Sigma rule generation from IOCs."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any, Optional
 import re

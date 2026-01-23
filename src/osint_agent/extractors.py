@@ -1,5 +1,7 @@
 """IOC extraction with validation, defang support, and false positive filtering."""
 
+from __future__ import annotations
+
 import logging
 import re
 import signal

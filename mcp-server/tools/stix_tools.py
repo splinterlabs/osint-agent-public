@@ -1,5 +1,7 @@
 """STIX 2.1 export tools."""
 
+from __future__ import annotations
+
 import json
 import logging
 from typing import Optional
