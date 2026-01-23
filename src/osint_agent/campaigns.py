@@ -8,12 +8,15 @@ from __future__ import annotations
 
 import json
 import logging
+import tempfile
 import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
+
+from filelock import FileLock
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +263,9 @@ class Campaign:
 class CampaignManager:
     """Manages campaign storage and retrieval."""
 
+    # Lock timeout in seconds
+    LOCK_TIMEOUT = 10
+
     def __init__(self, data_dir: Optional[Path] = None):
         """Initialize campaign manager.
 
@@ -269,37 +275,60 @@ class CampaignManager:
         self.data_dir = data_dir or Path("data/campaigns")
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self._campaigns: dict[str, Campaign] = {}
+        self._lock = FileLock(self._get_lock_path(), timeout=self.LOCK_TIMEOUT)
         self._load_campaigns()
 
     def _get_storage_path(self) -> Path:
         """Get path to campaigns storage file."""
         return self.data_dir / "campaigns.json"
 
+    def _get_lock_path(self) -> Path:
+        """Get path to lock file."""
+        return self.data_dir / "campaigns.json.lock"
+
     def _load_campaigns(self) -> None:
-        """Load campaigns from storage."""
+        """Load campaigns from storage with file locking."""
         storage_path = self._get_storage_path()
         if not storage_path.exists():
             return
 
         try:
-            with open(storage_path) as f:
-                data = json.load(f)
-                for campaign_data in data.get("campaigns", []):
-                    campaign = Campaign.from_dict(campaign_data)
-                    self._campaigns[campaign.id] = campaign
+            with self._lock:
+                with open(storage_path) as f:
+                    data = json.load(f)
+                    for campaign_data in data.get("campaigns", []):
+                        campaign = Campaign.from_dict(campaign_data)
+                        self._campaigns[campaign.id] = campaign
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Failed to load campaigns: {e}")
 
     def _save_campaigns(self) -> None:
-        """Save campaigns to storage."""
+        """Save campaigns to storage with atomic write and file locking.
+
+        Uses write-to-temp-then-rename pattern for atomicity.
+        """
         storage_path = self._get_storage_path()
         try:
-            with open(storage_path, "w") as f:
-                json.dump(
-                    {"campaigns": [c.to_dict() for c in self._campaigns.values()]},
-                    f,
-                    indent=2,
+            with self._lock:
+                # Write to temporary file first
+                fd, tmp_path = tempfile.mkstemp(
+                    dir=self.data_dir,
+                    prefix=".campaigns_",
+                    suffix=".json.tmp",
                 )
+                try:
+                    with open(fd, "w") as f:
+                        json.dump(
+                            {"campaigns": [c.to_dict() for c in self._campaigns.values()]},
+                            f,
+                            indent=2,
+                        )
+                    # Atomic rename (works on POSIX, best-effort on Windows)
+                    Path(tmp_path).replace(storage_path)
+                except Exception:
+                    # Clean up temp file on failure
+                    Path(tmp_path).unlink(missing_ok=True)
+                    raise
         except IOError as e:
             logger.error(f"Failed to save campaigns: {e}")
 
