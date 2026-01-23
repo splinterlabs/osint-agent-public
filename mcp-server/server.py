@@ -35,6 +35,7 @@ from tools import extractor_tools
 from tools import stix_tools
 from tools import otx_tools
 from tools import abusech_tools
+from tools import rule_tools
 
 nvd_tools.register_tools(mcp)
 kev_tools.register_tools(mcp)
@@ -42,6 +43,7 @@ extractor_tools.register_tools(mcp)
 stix_tools.register_tools(mcp)
 otx_tools.register_tools(mcp)
 abusech_tools.register_tools(mcp)
+rule_tools.register_tools(mcp)
 
 # To add a new source:
 # 1. Create tools/new_source_tools.py with register_tools(mcp) function
