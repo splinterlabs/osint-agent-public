@@ -26,7 +26,7 @@ from urllib.parse import urlparse
 # Suppress datetime.utcnow() deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*utcnow.*")
 
-logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
 # Project root is 3 levels up from .claude/hooks/
