@@ -39,6 +39,9 @@ htmlcov/
 .tox/
 .nox/
 
+# Lock files (users generate their own)
+uv.lock
+
 # mypy
 .mypy_cache/
 
@@ -54,13 +57,18 @@ credentials.*
 # Data files (contain potentially sensitive IOCs)
 data/cache/
 data/logs/*.jsonl
-data/context/tactical.json
+data/context/*
+!data/context/.gitkeep
 data/iocs.db
 data/rate_limits.db
 
 # Claude Code hook data
-.claude/data/cache/
+.claude/data/cache/*
+!.claude/data/cache/.gitkeep
 .claude/data/logs/*.jsonl
+
+# Internal docs
+OSINT_AGENT_PROPOSAL.md
 
 # Backups
 backups/*

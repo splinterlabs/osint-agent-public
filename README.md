@@ -1,7 +1,7 @@
 # OSINT Agent
 
-[![CI](https://github.com/USERNAME/osint-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/USERNAME/osint-agent/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/USERNAME/osint-agent/branch/main/graph/badge.svg)](https://codecov.io/gh/USERNAME/osint-agent)
+[![CI](https://github.com/splinterlabs/osint-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/splinterlabs/osint-agent/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/splinterlabs/osint-agent/branch/main/graph/badge.svg)](https://codecov.io/gh/splinterlabs/osint-agent)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -22,7 +22,7 @@ A threat intelligence assistant for [Claude Code](https://claude.ai/code) with C
 
 ```bash
 # Clone the repository
-git clone https://github.com/USERNAME/osint-agent.git
+git clone https://github.com/splinterlabs/osint-agent.git
 cd osint-agent
 
 # Run setup
