@@ -88,6 +88,23 @@ def register_tools(mcp: FastMCP) -> None:
         except Exception as e:
             health["services"]["shodan"] = {"status": "error", "error": str(e)}
 
+        # Check FreshRSS (requires URL, username, password)
+        try:
+            from osint_agent.keymanager import get_api_key
+
+            freshrss_url = get_api_key("FRESHRSS_URL")
+            freshrss_user = get_api_key("FRESHRSS_USERNAME")
+            freshrss_pass = get_api_key("FRESHRSS_PASSWORD")
+            all_configured = all([freshrss_url, freshrss_user, freshrss_pass])
+            health["services"]["freshrss"] = {
+                "status": "available" if all_configured else "no_credentials",
+                "url_configured": freshrss_url is not None,
+                "username_configured": freshrss_user is not None,
+                "password_configured": freshrss_pass is not None,
+            }
+        except Exception as e:
+            health["services"]["freshrss"] = {"status": "error", "error": str(e)}
+
         # Check API keys status
         try:
             from osint_agent.keymanager import list_configured_keys

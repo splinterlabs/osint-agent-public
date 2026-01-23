@@ -7,6 +7,7 @@ from .otx import OTXClient
 from .abusech import URLhausClient, MalwareBazaarClient, ThreatFoxClient
 from .shodan import ShodanClient
 from .attack import ATTACKClient
+from .freshrss import FreshRSSClient
 
 __all__ = [
     "ProxyConfig",
@@ -18,4 +19,5 @@ __all__ = [
     "ThreatFoxClient",
     "ShodanClient",
     "ATTACKClient",
+    "FreshRSSClient",
 ]
