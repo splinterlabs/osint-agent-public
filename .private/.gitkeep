@@ -1,0 +1,7 @@
+# Private directory - not synced to public repo
+# Place internal-only files here:
+# - Proprietary integrations
+# - Internal threat intel
+# - Enterprise features
+# - API keys and credentials
+# - Internal documentation

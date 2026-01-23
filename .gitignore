@@ -75,6 +75,15 @@ data/rate_limits.db
 
 # Internal docs
 OSINT_AGENT_PROPOSAL.md
+INTERNAL_*.md
+
+# Private directory (not synced to public)
+# Keep proprietary features, internal intel here
+.private/
+*.private.*
+
+# Sync configuration (contains repo URLs)
+.sync-config
 
 # Backups
 backups/*
