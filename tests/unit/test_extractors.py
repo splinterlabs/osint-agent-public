@@ -98,8 +98,9 @@ class TestValidateHash:
     """Tests for hash validation."""
 
     def test_valid_hashes(self):
-        assert validate_hash("a" * 32, "md5") is True
-        assert validate_hash("abc123def456" * 4, "sha256") is True
+        # Use realistic hash patterns (not all-same-character)
+        assert validate_hash("d8e8fca2dc0f896fd7cb4cb0031ba249", "md5") is True
+        assert validate_hash("abc123def456abc123def456abc123def456abc123def456abc123def456abcd1234", "sha256") is True
 
     def test_all_zeros_rejected(self):
         assert validate_hash("0" * 32, "md5") is False
