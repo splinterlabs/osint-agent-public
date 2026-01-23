@@ -1,5 +1,7 @@
 """Abuse.ch API clients for URLhaus, MalwareBazaar, and ThreatFox."""
 
+from __future__ import annotations
+
 from typing import Any, Optional
 
 from .base import BaseClient

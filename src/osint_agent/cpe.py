@@ -4,6 +4,8 @@ Provides pattern matching for CPE strings against watchlist patterns,
 with support for wildcards and version ranges.
 """
 
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass
 from typing import Optional
