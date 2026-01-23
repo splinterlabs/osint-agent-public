@@ -55,10 +55,16 @@ credentials.*
 !.env.example
 
 # Data files (contain potentially sensitive IOCs)
-data/cache/
+data/cache/*
+!data/cache/.gitkeep
+!data/cache/attack/
+data/cache/attack/*
+!data/cache/attack/.gitkeep
 data/logs/*.jsonl
 data/context/*
 !data/context/.gitkeep
+data/campaigns/*
+!data/campaigns/.gitkeep
 data/iocs.db
 data/rate_limits.db
 
