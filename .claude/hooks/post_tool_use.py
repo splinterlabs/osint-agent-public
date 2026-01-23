@@ -8,8 +8,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# Project root is 3 levels up from .claude/hooks/
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from osint_agent.extractors import extract_iocs
 
@@ -17,8 +20,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration
-IOC_DB_PATH = Path(__file__).parent.parent / "data" / "iocs.db"
-LOG_PATH = Path(__file__).parent.parent / "data" / "logs" / "ioc_extractions.jsonl"
+IOC_DB_PATH = PROJECT_ROOT / "data" / "iocs.db"
+LOG_PATH = PROJECT_ROOT / "data" / "logs" / "ioc_extractions.jsonl"
 
 
 def init_database() -> None:

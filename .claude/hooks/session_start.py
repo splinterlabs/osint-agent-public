@@ -21,8 +21,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+# Project root is 3 levels up from .claude/hooks/
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from osint_agent.clients.nvd import NVDClient
 from osint_agent.clients.cisa_kev import CISAKEVClient
@@ -32,8 +35,8 @@ logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
 # Configuration
-DATA_DIR = Path(__file__).parent.parent / "data"
-CONFIG_DIR = Path(__file__).parent.parent / "config"
+DATA_DIR = PROJECT_ROOT / "data"
+CONFIG_DIR = PROJECT_ROOT / "config"
 IOC_DB_PATH = DATA_DIR / "iocs.db"
 WATCHLIST_PATH = CONFIG_DIR / "watchlist.json"
 
