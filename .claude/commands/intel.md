@@ -12,7 +12,7 @@ Get current threat intelligence including recent critical CVEs, CISA KEV additio
 Run the session start hook to fetch current threat intelligence:
 
 ```bash
-cd $PROJECT_ROOT && python .claude/hooks/session_start.py
+cd $PROJECT_ROOT && .venv/bin/python3 .claude/hooks/session_start.py
 ```
 
 If the hook fails or for more detailed data, use the MCP tools directly:
@@ -34,3 +34,5 @@ Present the results as a structured summary:
 ## Arguments
 
 This command takes no arguments.
+
+After displaying the summary, offer to save the full report to `reports/`.
