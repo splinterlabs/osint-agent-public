@@ -14,6 +14,7 @@ import hashlib
 import json
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Optional
 
 # STIX 2.1 namespace for deterministic UUIDs
@@ -60,10 +61,23 @@ class STIXBundle:
         """Export bundle as JSON string."""
         return json.dumps(self.to_dict(), indent=indent)
 
-    def save(self, path: str) -> None:
-        """Save bundle to file."""
-        with open(path, "w") as f:
-            f.write(self.to_json())
+    def save(self, path: str | Path) -> None:
+        """Save bundle to file (atomic write)."""
+        import tempfile
+        import os
+        target = Path(path)
+        fd, tmp_path = tempfile.mkstemp(
+            dir=target.parent,
+            prefix=".stix_",
+            suffix=".json.tmp",
+        )
+        try:
+            with open(fd, "w") as f:
+                f.write(self.to_json())
+            os.replace(tmp_path, path)
+        except Exception:
+            Path(tmp_path).unlink(missing_ok=True)
+            raise
 
 
 # =============================================================================

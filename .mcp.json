@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "osint-agent": {
+      "command": ".venv/bin/python",
+      "args": ["mcp-server/server.py"]
+    },
+    "maigret": {
+      "type": "sse",
+      "url": "https://mcp-maigret.infinity.ntry.home"
+    },
+    "whois-mcp": {
+      "command": "/Users/splinter/.local/bin/uvx",
+      "args": ["--from", "git+https://github.com/dadepo/whois-mcp.git", "whois-mcp"]
+    }
+  }
+}

@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+import logging
+
 from ..keymanager import get_api_key
 from .base import BaseClient
+
+logger = logging.getLogger(__name__)
 
 
 class OTXClient(BaseClient):
@@ -19,19 +23,6 @@ class OTXClient(BaseClient):
 
     BASE_URL = "https://otx.alienvault.com/api/v1"
     DEFAULT_TIMEOUT = 30
-
-    # Supported indicator types
-    INDICATOR_TYPES = {
-        "ipv4": "IPv4",
-        "ipv6": "IPv6",
-        "domain": "domain",
-        "hostname": "hostname",
-        "url": "url",
-        "md5": "file",
-        "sha1": "file",
-        "sha256": "file",
-        "cve": "cve",
-    }
 
     def __init__(self, api_key: Optional[str] = None):
         key = api_key or get_api_key("OTX_API_KEY")
@@ -101,8 +92,8 @@ class OTXClient(BaseClient):
                 result["passive_dns"] = self.get_indicator(
                     indicator_type, indicator, "passive_dns"
                 )
-            except Exception:
-                pass  # Some sections may not be available
+            except Exception as e:
+                logger.warning("Failed to fetch IP enrichment for %s: %s", indicator, e)
 
         elif indicator_type == "domain":
             try:
@@ -112,16 +103,16 @@ class OTXClient(BaseClient):
                 result["url_list"] = self.get_indicator(
                     indicator_type, indicator, "url_list"
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to fetch domain enrichment for %s: %s", indicator, e)
 
         elif indicator_type in ("md5", "sha1", "sha256"):
             try:
                 result["malware"] = self.get_indicator(
                     indicator_type, indicator, "analysis"
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to fetch file analysis for %s: %s", indicator, e)
 
         return result
 
