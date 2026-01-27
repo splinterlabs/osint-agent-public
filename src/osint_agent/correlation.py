@@ -15,6 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from osint_agent.parallel import get_workers, parallel_collect_sets
+
 logger = logging.getLogger(__name__)
 
 
@@ -424,13 +426,19 @@ class CorrelationEngine:
         if domains:
             results["infrastructure_patterns"] = self.find_infrastructure_patterns(domains)
 
-        # Find related campaigns by shared IOCs
-        related_campaign_ids = set()
-        for ioc in campaign.iocs[:50]:  # Limit for performance
+        # Find related campaigns by shared IOCs (parallelized)
+        def _find_related(ioc: Any) -> set[str] | None:
             related = self.campaign_manager.find_by_ioc(ioc.ioc_type, ioc.value)
-            for rel in related:
-                if rel.id != campaign_id:
-                    related_campaign_ids.add(rel.id)
+            ids = {rel.id for rel in related if rel.id != campaign_id}
+            return ids if ids else None
+
+        workers = get_workers("campaign_correlation_workers", 20)
+        related_campaign_ids = parallel_collect_sets(
+            _find_related,
+            campaign.iocs[:50],
+            max_workers=workers,
+            label="campaign_correlation",
+        )
 
         results["related_campaigns"] = list(related_campaign_ids)
 

@@ -11,6 +11,7 @@ from osint_agent.clients.abusech import (
     MalwareBazaarClient,
     ThreatFoxClient,
 )
+from osint_agent.keymanager import get_api_key
 
 logger = logging.getLogger("osint-mcp.abusech")
 
@@ -20,24 +21,28 @@ _bazaar: Optional[MalwareBazaarClient] = None
 _threatfox: Optional[ThreatFoxClient] = None
 
 
+def _get_auth_key() -> Optional[str]:
+    return get_api_key("ABUSECH_AUTH_KEY")
+
+
 def get_urlhaus() -> URLhausClient:
     global _urlhaus
     if _urlhaus is None:
-        _urlhaus = URLhausClient()
+        _urlhaus = URLhausClient(api_key=_get_auth_key())
     return _urlhaus
 
 
 def get_bazaar() -> MalwareBazaarClient:
     global _bazaar
     if _bazaar is None:
-        _bazaar = MalwareBazaarClient()
+        _bazaar = MalwareBazaarClient(api_key=_get_auth_key())
     return _bazaar
 
 
 def get_threatfox() -> ThreatFoxClient:
     global _threatfox
     if _threatfox is None:
-        _threatfox = ThreatFoxClient()
+        _threatfox = ThreatFoxClient(api_key=_get_auth_key())
     return _threatfox
 
 
