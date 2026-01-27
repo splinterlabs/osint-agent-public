@@ -67,6 +67,14 @@ mkdir -p "$PROJECT_ROOT/.claude/data/cache"
 mkdir -p "$PROJECT_ROOT/.claude/data/logs"
 echo -e "  ${GREEN}✓${NC} Data directories created"
 
+# Copy config templates
+if [ ! -f "$PROJECT_ROOT/config/watchlist.json" ]; then
+    cp "$PROJECT_ROOT/config/watchlist.example.json" "$PROJECT_ROOT/config/watchlist.json"
+    echo -e "  ${GREEN}✓${NC} Created config/watchlist.json from template"
+else
+    echo -e "  ${GREEN}✓${NC} config/watchlist.json already exists"
+fi
+
 # Install main package
 echo ""
 echo -e "${YELLOW}Installing OSINT Agent...${NC}"
