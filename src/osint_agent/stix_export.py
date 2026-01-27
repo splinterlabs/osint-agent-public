@@ -61,7 +61,7 @@ class STIXBundle:
         """Export bundle as JSON string."""
         return json.dumps(self.to_dict(), indent=indent)
 
-    def save(self, path: str) -> None:
+    def save(self, path: str | Path) -> None:
         """Save bundle to file (atomic write)."""
         import tempfile
         import os
