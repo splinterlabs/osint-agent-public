@@ -53,3 +53,14 @@ Also offer to:
 1. Save IOCs to the database (`data/iocs.db`)
 2. Export as STIX format (save to `reports/`)
 3. Export as JSON (save to `reports/`)
+
+### Usage Footnote
+
+Call the `get_investigation_usage` MCP tool and display a compact footnote at the very end:
+
+```
+---
+> usage: {total_tool_calls} tool calls | {total_api_requests} API requests | {total_api_errors} errors
+```
+
+Always display this as the last line of output.

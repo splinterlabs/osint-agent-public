@@ -115,3 +115,14 @@ After presenting the review, offer:
 3. Generate detection rules (YARA/Sigma) if verdict is ESCALATE
 4. Export findings as STIX to `reports/`
 5. Re-run `/investigate` on related indicators identified during review
+
+### Step 7: Usage Footnote
+
+Call the `get_investigation_usage` MCP tool and display a compact footnote at the very end:
+
+```
+---
+> usage: {total_tool_calls} tool calls | {total_api_requests} API requests | {total_api_errors} errors | investigation: {investigation_name}
+```
+
+Always display this as the last line of output.
