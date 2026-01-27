@@ -159,6 +159,7 @@ class BaseClient:
         endpoint: str,
         params: Optional[dict] = None,
         json_data: Optional[dict] = None,
+        form_data: Optional[dict] = None,
         **kwargs,
     ) -> Any:
         """Make HTTP request with retry logic and error handling."""
@@ -179,6 +180,7 @@ class BaseClient:
                     url=url,
                     params=params,
                     json=json_data,
+                    data=form_data,
                     headers=headers,
                     timeout=self.timeout,
                     proxies=proxies,
@@ -229,7 +231,7 @@ class BaseClient:
         return self._request("GET", endpoint, params=params, **kwargs)
 
     def post(
-        self, endpoint: str, json_data: Optional[dict] = None, **kwargs
+        self, endpoint: str, json_data: Optional[dict] = None, form_data: Optional[dict] = None, **kwargs
     ) -> Any:
         """Make POST request."""
-        return self._request("POST", endpoint, json_data=json_data, **kwargs)
+        return self._request("POST", endpoint, json_data=json_data, form_data=form_data, **kwargs)
