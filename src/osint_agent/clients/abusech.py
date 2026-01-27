@@ -39,6 +39,12 @@ class URLhausClient(AbuseCHClient):
 
     BASE_URL = "https://urlhaus-api.abuse.ch/v1"
     DEFAULT_TIMEOUT = 30
+    CACHE_TTL_HOURS = 4
+
+    def _should_cache(self, method, endpoint, params=None, json_data=None, form_data=None):
+        if "/recent" in endpoint:
+            return False
+        return True
 
     def lookup_url(self, url: str) -> dict[str, Any]:
         """Look up a URL in URLhaus.
@@ -188,6 +194,12 @@ class MalwareBazaarClient(AbuseCHClient):
 
     BASE_URL = "https://mb-api.abuse.ch/api/v1"
     DEFAULT_TIMEOUT = 30
+    CACHE_TTL_HOURS = 4
+
+    def _should_cache(self, method, endpoint, params=None, json_data=None, form_data=None):
+        if form_data and form_data.get("query") == "get_recent":
+            return False
+        return True
 
     def lookup_hash(self, hash_value: str) -> dict[str, Any]:
         """Look up a malware sample by hash.
@@ -312,6 +324,12 @@ class ThreatFoxClient(AbuseCHClient):
 
     BASE_URL = "https://threatfox-api.abuse.ch/api/v1"
     DEFAULT_TIMEOUT = 30
+    CACHE_TTL_HOURS = 4
+
+    def _should_cache(self, method, endpoint, params=None, json_data=None, form_data=None):
+        if json_data and json_data.get("query") == "get_iocs":
+            return False
+        return True
 
     def lookup_ioc(self, ioc: str) -> dict[str, Any]:
         """Look up an IOC in ThreatFox.
