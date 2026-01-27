@@ -125,6 +125,7 @@ class BaseClient:
     MAX_RETRIES: int = 3
     BACKOFF_BASE: float = 1.0
     DEFAULT_USER_AGENT: str = "OSINT-Agent/0.1.0"
+    CACHE_TTL_HOURS: int = 0  # 0 = caching disabled; override in subclasses
 
     def __init__(
         self,
@@ -140,6 +141,20 @@ class BaseClient:
         self.session = requests.Session()
         self._setup_session()
 
+        # Initialize response cache if TTL is configured
+        # Set OSINT_NO_CACHE=1 to disable, OSINT_CACHE_DIR to override location
+        self._response_cache = None
+        if self.CACHE_TTL_HOURS > 0 and not os.environ.get("OSINT_NO_CACHE"):
+            from pathlib import Path
+
+            from osint_agent.cache import ThreatContextCache
+
+            cache_dir = Path(os.environ.get("OSINT_CACHE_DIR", "data/cache/api"))
+            self._response_cache = ThreatContextCache(
+                cache_dir=cache_dir,
+                ttl_hours=self.CACHE_TTL_HOURS,
+            )
+
     def _setup_session(self) -> None:
         """Configure session with default headers."""
         self.session.headers.update(
@@ -152,6 +167,21 @@ class BaseClient:
     def _get_headers(self) -> dict[str, str]:
         """Get headers for request. Override in subclasses for auth."""
         return {}
+
+    def _should_cache(
+        self,
+        method: str,
+        endpoint: str,
+        params: Optional[dict] = None,
+        json_data: Optional[dict] = None,
+        form_data: Optional[dict] = None,
+    ) -> bool:
+        """Whether this request should use the response cache.
+
+        Override in subclasses to exclude volatile endpoints (e.g. "recent" feeds).
+        Only called when ``_response_cache`` is not None.
+        """
+        return True
 
     def _request(
         self,
@@ -169,6 +199,21 @@ class BaseClient:
 
         url = f"{self.BASE_URL}{endpoint}"
         service = urlparse(url).hostname or "unknown"
+
+        # --- response cache check ---
+        cache_key: Optional[str] = None
+        if self._response_cache is not None and self._should_cache(
+            method, endpoint, params, json_data, form_data
+        ):
+            from osint_agent.cache import make_request_cache_key
+
+            cache_key = make_request_cache_key(method, url, params, json_data, form_data)
+            if not self._response_cache.is_stale(cache_key):
+                cached = self._response_cache.get(cache_key)
+                if cached is not None:
+                    logger.debug("Cache hit: %s %s", method, url)
+                    return cached
+
         headers = {**self._get_headers(), **kwargs.pop("headers", {})}
 
         # Configure proxy unless bypassed for this URL
@@ -210,6 +255,14 @@ class BaseClient:
 
                 data = response.json()
                 get_usage_tracker().record_api_request(service)
+
+                # --- cache successful response ---
+                if cache_key is not None:
+                    try:
+                        self._response_cache.set(cache_key, data)
+                    except Exception:
+                        logger.debug("Failed to cache response for %s %s", method, url)
+
                 return data
 
             except requests.Timeout as e:
