@@ -17,7 +17,7 @@ Extract Indicators of Compromise (IOCs) from a file, URL, or text content.
 ### If a file path is provided:
 
 ```bash
-cd $PROJECT_ROOT && python -m osint_agent.cli extract -f "$ARGUMENTS" --format text
+cd $PROJECT_ROOT && .venv/bin/python -m osint_agent.cli extract -f "$ARGUMENTS" --format text
 ```
 
 ### If a URL is provided:
