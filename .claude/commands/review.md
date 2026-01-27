@@ -20,7 +20,8 @@ Collect the findings to review from one of these sources (in priority order):
 
 1. **File argument** — If `$ARGUMENTS` is a file path, read that file
 2. **MCP context** — Use `get_findings` and `get_active_iocs` MCP tools to retrieve findings from the current investigation session
-3. **Conversation context** — Use findings already present in the current conversation
+3. **Investigation log** — Use `get_investigation_log` to retrieve raw enrichment data from the JSONL log file (contains full API responses from each enrichment step)
+4. **Conversation context** — Use findings already present in the current conversation
 
 If no findings are available from any source, inform the user and suggest running `/investigate` first.
 

@@ -6,17 +6,23 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-A threat intelligence assistant for [Claude Code](https://claude.ai/code) with CVE lookups, IOC extraction, and automated security monitoring.
+A threat intelligence assistant for [Claude Code](https://claude.ai/code) with CVE lookups, IOC extraction, structured investigations, and automated security monitoring.
 
 ## Features
 
-- **CVE Lookup** - Query NVD and CISA KEV for vulnerability details
-- **IOC Extraction** - Automatically extract IPs, domains, hashes, URLs from text/files
-- **Threat Feeds** - Integration with AlienVault OTX, Abuse.ch
-- **Watchlist Alerts** - Monitor vendors/products for new vulnerabilities
-- **Rule Generation** - Create YARA and Sigma rules from IOCs
-- **STIX Export** - Export IOCs in STIX 2.1 format
-- **Claude Code Integration** - Slash commands, hooks, and MCP server
+- **Structured Investigations** - `/investigate` runs multi-source enrichment with compact console output and full JSONL logging; `/review` provides an independent judge layer
+- **CVE Lookup** - Query NVD and CISA KEV for vulnerability details, CVSS scores, and exploitation status
+- **IOC Extraction** - Extract IPs, domains, hashes, URLs, emails, and CVE IDs from text and files
+- **Threat Feeds** - Integration with AlienVault OTX, Abuse.ch (URLhaus, MalwareBazaar, ThreatFox), and FreshRSS
+- **Shodan Reconnaissance** - Host lookups, DNS resolution, vulnerability exposure, and exploit search
+- **MITRE ATT&CK** - Technique lookups, tactic mapping, threat group profiles, and behavior-to-technique mapping
+- **Campaign Tracking** - Create and manage threat campaigns with IOCs, TTPs, CVEs, and correlation analysis
+- **Watchlist Alerts** - Monitor vendors/products for new vulnerabilities with session-start briefings
+- **Rule Generation** - Create YARA and Sigma (network, DNS, firewall) detection rules from IOCs
+- **STIX Export** - Export IOCs and CVEs in STIX 2.1 format
+- **WHOIS / RIR Lookups** - Query RIPE, ARIN, APNIC, AfriNIC, and LACNIC for IP/ASN/contact data
+- **Username OSINT** - Search for usernames across social networks via Maigret
+- **Claude Code Integration** - Slash commands, hooks, MCP server, and per-investigation usage tracking
 
 ## Quick Start
 
@@ -60,6 +66,8 @@ claude
 
 | Command | Description | Example |
 |---------|-------------|---------|
+| `/investigate` | Structured multi-source investigation | `/investigate CVE-2026-24061` |
+| `/review` | Independent judge layer for findings | `/review` |
 | `/cve` | Look up CVE details | `/cve CVE-2024-3400` |
 | `/intel` | Daily threat summary | `/intel` |
 | `/extract-iocs` | Extract IOCs from text/file | `/extract-iocs report.pdf` |
@@ -84,6 +92,7 @@ API keys enhance functionality but are not required:
 # Store securely in system keyring
 python -m osint_agent.cli keys set NVD_API_KEY
 python -m osint_agent.cli keys set OTX_API_KEY
+python -m osint_agent.cli keys set SHODAN_API_KEY
 ```
 
 Or copy `.env.example` to `.env` and fill in values.
@@ -92,6 +101,10 @@ Or copy `.env.example` to `.env` and fill in values.
 |-----|--------|----------|
 | `NVD_API_KEY` | [NVD](https://nvd.nist.gov/developers/request-an-api-key) | Higher rate limits |
 | `OTX_API_KEY` | [AlienVault](https://otx.alienvault.com/) | Threat pulse access |
+| `SHODAN_API_KEY` | [Shodan](https://account.shodan.io/) | Host/DNS/vuln lookups |
+| `FRESHRSS_URL` | Self-hosted | Threat feed monitoring |
+| `FRESHRSS_USER` | Self-hosted | FreshRSS credentials |
+| `FRESHRSS_PASSWORD` | Self-hosted | FreshRSS credentials |
 
 ### Watchlist
 
@@ -109,17 +122,31 @@ Edit `config/watchlist.json` to monitor specific vendors, products, or keywords:
 
 ```
 osint-agent/
-├── src/osint_agent/     # Main Python package
-│   ├── clients/         # API clients (NVD, CISA, OTX, Abuse.ch)
-│   ├── extractors.py    # IOC extraction
-│   ├── rules.py         # YARA/Sigma generation
-│   └── stix_export.py   # STIX 2.1 export
-├── mcp-server/          # Claude Code MCP server (optional)
+├── src/osint_agent/          # Main Python package
+│   ├── clients/              # API clients (NVD, CISA, OTX, Abuse.ch, Shodan, FreshRSS, ATT&CK)
+│   ├── extractors.py         # IOC extraction
+│   ├── rules.py              # YARA/Sigma generation
+│   ├── stix_export.py        # STIX 2.1 export
+│   ├── campaigns.py          # Campaign tracking
+│   ├── correlation.py        # Campaign IOC correlation
+│   ├── context.py            # Investigation context management
+│   ├── investigation_log.py  # Per-investigation JSONL step logging
+│   ├── usage.py              # Per-investigation usage tracking
+│   ├── cache.py              # Transparent API response caching
+│   └── parallel.py           # Concurrent execution utilities
+├── mcp-server/               # Claude Code MCP server
+│   ├── server.py             # Server entry point (15 tool modules)
+│   └── tools/                # MCP tool modules (60+ tools)
 ├── .claude/
-│   ├── commands/        # Slash commands
-│   └── hooks/           # Automation hooks
-├── config/              # Configuration files
-└── data/                # Databases and cache
+│   ├── commands/             # Slash commands (7 commands)
+│   └── hooks/                # Automation hooks
+├── config/                   # Configuration files
+├── data/                     # Databases, cache, and logs
+│   ├── cache/                # API response cache
+│   ├── context/              # Investigation context state
+│   ├── campaigns/            # Campaign data
+│   └── logs/                 # JSONL logs (alerts, investigations)
+└── tests/                    # Unit and integration tests
 ```
 
 ## MCP Server (Optional)
@@ -143,6 +170,8 @@ Add to `~/.claude/settings.json`:
 }
 ```
 
+See [mcp-server/README.md](mcp-server/README.md) for the full tool reference.
+
 ## Development
 
 ```bash
@@ -163,10 +192,12 @@ make format
 
 See [USE_CASES.md](USE_CASES.md) for detailed workflows:
 
-1. **Daily Threat Brief** - Start your day with `/intel`
-2. **Incident Investigation** - Extract and correlate IOCs
-3. **Vulnerability Triage** - Prioritize patching with `/cve`
-4. **Threat Actor Research** - Track campaigns and TTPs
+1. **Structured Investigation** - Run `/investigate` on any indicator for multi-source enrichment
+2. **Independent Review** - Run `/review` to get a second-opinion judge layer on findings
+3. **Daily Threat Brief** - Start your day with `/intel`
+4. **Incident Investigation** - Extract and correlate IOCs across campaigns
+5. **Vulnerability Triage** - Prioritize patching with `/cve`
+6. **Threat Actor Research** - Track campaigns and TTPs with ATT&CK mapping
 
 ## Data Sources
 
@@ -174,8 +205,13 @@ See [USE_CASES.md](USE_CASES.md) for detailed workflows:
 |--------|------|---------------|
 | [NVD](https://nvd.nist.gov/) | CVE details | Optional |
 | [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | Exploited vulns | No |
-| [AlienVault OTX](https://otx.alienvault.com/) | Threat intel | Yes (free) |
-| [Abuse.ch](https://abuse.ch/) | Malware/URLs | No |
+| [AlienVault OTX](https://otx.alienvault.com/) | Threat intel pulses | Yes (free) |
+| [Abuse.ch](https://abuse.ch/) (URLhaus, MalwareBazaar, ThreatFox) | Malware/URLs/IOCs | No |
+| [Shodan](https://www.shodan.io/) | Internet-facing assets | Yes (free tier) |
+| [MITRE ATT&CK](https://attack.mitre.org/) | TTPs and threat groups | No (bundled) |
+| [FreshRSS](https://freshrss.org/) | Threat feed aggregation | Self-hosted |
+| WHOIS/RIR (RIPE, ARIN, APNIC, AfriNIC, LACNIC) | IP/ASN ownership | No |
+| [Maigret](https://github.com/soxoj/maigret) | Username OSINT | No |
 
 ## Contributing
 
@@ -195,4 +231,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [NVD](https://nvd.nist.gov/) for vulnerability data
 - [CISA](https://www.cisa.gov/) for KEV catalog
 - [AlienVault](https://otx.alienvault.com/) for OTX platform
-- [Abuse.ch](https://abuse.ch/) for threat feeds
+- [Abuse.ch](https://abuse.ch/) for URLhaus, MalwareBazaar, and ThreatFox
+- [Shodan](https://www.shodan.io/) for internet intelligence
+- [MITRE](https://attack.mitre.org/) for ATT&CK framework
+- [Maigret](https://github.com/soxoj/maigret) for username OSINT

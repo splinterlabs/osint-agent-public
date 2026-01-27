@@ -46,7 +46,9 @@ pip install -e .
 ### 2. Create Data Directories
 
 ```bash
-mkdir -p data/{cache,context,logs}
+mkdir -p data/{cache,context,logs,campaigns}
+mkdir -p data/logs/investigations
+mkdir -p data/cache/attack
 mkdir -p .claude/data/{cache,logs}
 ```
 
@@ -82,11 +84,20 @@ python -m osint_agent.cli keys set NVD_API_KEY
 
 # AlienVault OTX (threat intelligence)
 python -m osint_agent.cli keys set OTX_API_KEY
+
+# Shodan (host/DNS/vuln lookups)
+python -m osint_agent.cli keys set SHODAN_API_KEY
 ```
 
 Get keys from:
 - **NVD**: https://nvd.nist.gov/developers/request-an-api-key
 - **OTX**: https://otx.alienvault.com/ (free account)
+- **Shodan**: https://account.shodan.io/ (free tier available)
+
+For FreshRSS integration, set these in `.env`:
+- `FRESHRSS_URL` — Your FreshRSS instance URL
+- `FRESHRSS_USER` — FreshRSS username
+- `FRESHRSS_PASSWORD` — FreshRSS password
 
 ## Claude Code Integration
 
@@ -100,7 +111,7 @@ claude
 ```
 
 The `.claude/` directory provides:
-- **Slash commands**: `/cve`, `/intel`, `/extract-iocs`, `/iocs`, `/watchlist`
+- **Slash commands**: `/investigate`, `/review`, `/cve`, `/intel`, `/extract-iocs`, `/iocs`, `/watchlist`
 - **Hooks**: Automated threat briefing on session start
 - **Settings**: Project-specific permissions
 
@@ -108,6 +119,8 @@ The `.claude/` directory provides:
 
 | Command | Description | Example |
 |---------|-------------|---------|
+| `/investigate` | Structured multi-source investigation | `/investigate CVE-2026-24061` |
+| `/review` | Independent judge layer for findings | `/review` |
 | `/cve <id>` | Look up CVE details | `/cve CVE-2024-3400` |
 | `/intel` | Daily threat summary | `/intel` |
 | `/extract-iocs` | Extract IOCs from text/file | `/extract-iocs report.txt` |
@@ -217,13 +230,21 @@ rm -rf data/  # Remove databases (optional)
 ```
 osint-agent/
 ├── src/osint_agent/     # Main Python package
-├── mcp-server/          # Optional MCP server
-├── .claude/             # Claude Code integration
-│   ├── commands/        # Slash commands
+│   ├── clients/         # API clients (NVD, OTX, Abuse.ch, Shodan, FreshRSS, ATT&CK)
+│   └── ...              # Extractors, rules, STIX, campaigns, context, caching
+├── mcp-server/          # MCP server (15 tool modules, 60+ tools)
+│   └── tools/           # Tool modules
+├── .claude/
+│   ├── commands/        # Slash commands (7 commands)
 │   ├── hooks/           # Automation hooks
 │   └── settings.local.json
 ├── config/              # Configuration files
-├── data/                # Databases and cache
+├── data/                # Databases, cache, and logs
+│   ├── cache/           # API response cache
+│   ├── context/         # Investigation context state
+│   ├── campaigns/       # Campaign tracking data
+│   └── logs/            # JSONL logs (alerts, investigations)
+├── tests/               # Unit and integration tests
 └── setup.sh             # Installation script
 ```
 
