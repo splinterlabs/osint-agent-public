@@ -41,7 +41,28 @@ Use the `start_investigation` MCP tool to reset tactical context for a clean inv
 
 **CRITICAL — Context Isolation:** Each enrichment step queries ONLY the original indicator `$ARGUMENTS`. Do NOT feed accumulated findings from one step into queries for another. This prevents false correlation chains.
 
-Run the steps for the classified type. After each step, record results using the `add_finding` MCP tool with source name, verdict, and key details.
+**CRITICAL — Step Logging:** After each enrichment tool call:
+1. Call `log_investigation_step` with: `source` (tool name), `indicator`, `status` ("checked", "error", or "skipped"), a one-line `summary`, and the full `raw_result` JSON string from the tool.
+2. Print ONLY a compact one-liner to console using this exact format:
+   ```
+     [Source]       status  -- one-line summary
+   ```
+   Pad the source name to 14 chars and status to 7 chars for alignment.
+3. Only call `add_finding` for significant findings (confirmed malicious associations, KEV matches, high-confidence threat links). Do NOT add routine "no match" or "not found" results as findings.
+
+Example console output during enrichment:
+```
+Investigating: CVE-2026-24061 (CVE)
+  [NVD/KEV]      checked -- CVSS 9.8, auth bypass in telnetd
+  [CISA KEV]     checked -- In KEV, due 2026-02-16
+  [Watchlist]    checked -- GNU vendor match
+  [Shodan]       error   -- CVE not indexed
+  [OTX]          checked -- 3 pulses
+  [ATT&CK]       checked -- T1190, T1078 mapped
+  [Threat Feeds] skipped -- FreshRSS not configured
+```
+
+Run the steps for the classified type:
 
 #### IP Address
 
@@ -131,6 +152,8 @@ Mark each source as **Checked**, **Skipped** (with reason), or **Error** (with b
 
 ### Step 5: Synthesize Report
 
+Call `log_investigation_conclusion` with the verdict, confidence, risk level, summary, and coverage table JSON before presenting the report.
+
 Present a structured report:
 
 ```
@@ -152,9 +175,10 @@ Present a structured report:
 ### Coverage
 [Coverage table from Step 4]
 
-### Raw Details
-[Collapsed or summarized per-source results]
+> Full enrichment log: data/logs/investigations/{filename}
 ```
+
+Do NOT include a "Raw Details" section. All raw data is in the JSONL log file.
 
 **Verdict criteria:**
 - **Malicious** — Multiple sources confirm malicious activity or known-bad indicator
@@ -172,6 +196,7 @@ After presenting the report, offer:
 4. Generate detection rules (YARA/Sigma) if applicable
 5. Export findings as STIX to `reports/`
 6. Investigate related indicators found during enrichment
+7. View full investigation log (reads back all raw enrichment data)
 
 ### Step 7: Usage Footnote
 

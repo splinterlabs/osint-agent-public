@@ -43,6 +43,7 @@ from tools import campaign_tools
 from tools import health_tools
 from tools import freshrss_tools
 from tools import web_fetch_tools
+from tools import investigation_log_tools
 
 nvd_tools.register_tools(mcp)
 kev_tools.register_tools(mcp)
@@ -58,6 +59,7 @@ campaign_tools.register_tools(mcp)
 health_tools.register_tools(mcp)
 freshrss_tools.register_tools(mcp)
 web_fetch_tools.register_tools(mcp)
+investigation_log_tools.register_tools(mcp)
 
 # To add a new source:
 # 1. Create tools/new_source_tools.py with register_tools(mcp) function

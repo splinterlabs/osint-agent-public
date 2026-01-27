@@ -9,6 +9,7 @@ from mcp.server.fastmcp import FastMCP
 
 from osint_agent.context import ContextManager
 from osint_agent.usage import get_usage_tracker, track_tool
+from tools.investigation_log_tools import start_new_log
 
 logger = logging.getLogger("osint-mcp.context")
 
@@ -149,11 +150,13 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
         get_usage_tracker().reset(name)
+        log_file = start_new_log(name)
 
         return json.dumps(
             {
                 "status": "investigation_started",
                 "name": name,
+                "log_file": log_file,
                 "message": "Operational and tactical contexts have been reset.",
             },
             indent=2,

@@ -60,6 +60,7 @@ data/cache/*
 data/cache/attack/*
 !data/cache/attack/.gitkeep
 data/logs/*.jsonl
+data/logs/investigations/*.jsonl
 data/context/*
 !data/context/.gitkeep
 data/campaigns/*
