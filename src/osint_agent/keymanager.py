@@ -19,6 +19,7 @@ KEYS = {
     "VT_API_KEY": "virustotal",
     "ABUSEIPDB_API_KEY": "abuseipdb",
     "SHODAN_API_KEY": "shodan",
+    "ABUSECH_AUTH_KEY": "abusech",
     "FRESHRSS_URL": "freshrss_url",
     "FRESHRSS_USERNAME": "freshrss_username",
     "FRESHRSS_PASSWORD": "freshrss_password",

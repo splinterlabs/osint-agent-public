@@ -5,8 +5,8 @@
       "args": ["mcp-server/server.py"]
     },
     "maigret": {
-      "type": "sse",
-      "url": "https://mcp-maigret.infinity.ntry.home"
+      "command": "npx",
+      "args": ["-y", "supergateway", "--sse", "https://mcp-maigret.infinity.ntry.home/sse"]
     },
     "whois-mcp": {
       "command": "/Users/splinter/.local/bin/uvx",
