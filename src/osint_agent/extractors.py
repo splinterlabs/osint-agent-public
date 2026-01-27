@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-import signal
-from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -191,28 +190,96 @@ def validate_hash(hash_value: str, hash_type: str) -> bool:
     return True
 
 
-@contextmanager
-def timeout_handler(seconds: int):
-    """Context manager for regex timeout protection (Unix only)."""
+def _run_with_timeout(func, timeout_seconds: int):
+    """Run a function with timeout protection (cross-platform).
 
-    def _handler(signum, frame):
-        raise TimeoutError(f"Operation timed out after {seconds}s")
+    Uses ThreadPoolExecutor for cross-platform timeout support.
+    Works on Windows, Linux, and macOS.
 
-    try:
-        old_handler = signal.signal(signal.SIGALRM, _handler)
-        signal.alarm(seconds)
+    Args:
+        func: Callable to execute
+        timeout_seconds: Maximum execution time
+
+    Returns:
+        Result of func()
+
+    Raises:
+        TimeoutError: If execution exceeds timeout
+    """
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(func)
         try:
-            yield
-        finally:
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, old_handler)
-    except (ValueError, AttributeError):
-        # Windows or threading issues - run without timeout
-        yield
+            return future.result(timeout=timeout_seconds)
+        except FuturesTimeoutError:
+            raise TimeoutError(f"Operation timed out after {timeout_seconds}s")
+
+
+def _extract_iocs_internal(content: str) -> dict[str, list[str]]:
+    """Internal IOC extraction logic (called with timeout protection)."""
+    extracted: dict[str, list[str]] = {}
+
+    # IPv4
+    ipv4_matches = IOCPatterns.IPV4.findall(content)
+    valid_ips = [ip for ip in set(ipv4_matches) if validate_ip(ip)]
+    if valid_ips:
+        extracted["ipv4"] = sorted(valid_ips)
+
+    # IPv6
+    ipv6_matches = IOCPatterns.IPV6.findall(content)
+    if ipv6_matches:
+        extracted["ipv6"] = sorted(set(ipv6_matches))
+
+    # Domains (with TLD validation)
+    domain_matches = IOCPatterns.DOMAIN.findall(content)
+    valid_domains = [
+        refang(d).lower() for d in set(domain_matches) if validate_domain(d)
+    ]
+    if valid_domains:
+        extracted["domain"] = sorted(set(valid_domains))
+
+    # Hashes
+    for hash_type, pattern in [
+        ("md5", IOCPatterns.MD5),
+        ("sha1", IOCPatterns.SHA1),
+        ("sha256", IOCPatterns.SHA256),
+    ]:
+        matches = pattern.findall(content)
+        valid_hashes = [
+            h.lower() for h in set(matches) if validate_hash(h, hash_type)
+        ]
+        if valid_hashes:
+            extracted[hash_type] = sorted(valid_hashes)
+
+    # CVEs
+    cve_matches = IOCPatterns.CVE.findall(content)
+    if cve_matches:
+        extracted["cve"] = sorted(set(c.upper() for c in cve_matches))
+
+    # URLs
+    url_matches = IOCPatterns.URL.findall(content)
+    if url_matches:
+        extracted["url"] = sorted(set(refang(u) for u in url_matches))
+
+    # Emails
+    email_matches = IOCPatterns.EMAIL.findall(content)
+    if email_matches:
+        # Filter out common false positives
+        valid_emails = [
+            e.lower()
+            for e in set(email_matches)
+            if not e.lower().endswith(("@example.com", "@test.com"))
+        ]
+        if valid_emails:
+            extracted["email"] = sorted(valid_emails)
+
+    return extracted
 
 
 def extract_iocs(content: str) -> dict[str, list[str]]:
     """Extract IOCs from content with validation and timeout protection.
+
+    Uses cross-platform timeout protection via ThreadPoolExecutor.
+    Works on Windows, Linux, and macOS.
 
     Args:
         content: Text content to search for IOCs
@@ -225,67 +292,14 @@ def extract_iocs(content: str) -> dict[str, list[str]]:
         logger.warning(f"Content truncated from {len(content)} to {MAX_CONTENT_LENGTH}")
         content = content[:MAX_CONTENT_LENGTH]
 
-    extracted: dict[str, list[str]] = {}
-
     try:
-        with timeout_handler(EXTRACTION_TIMEOUT_SECONDS):
-            # IPv4
-            ipv4_matches = IOCPatterns.IPV4.findall(content)
-            valid_ips = [ip for ip in set(ipv4_matches) if validate_ip(ip)]
-            if valid_ips:
-                extracted["ipv4"] = sorted(valid_ips)
-
-            # IPv6
-            ipv6_matches = IOCPatterns.IPV6.findall(content)
-            if ipv6_matches:
-                extracted["ipv6"] = sorted(set(ipv6_matches))
-
-            # Domains (with TLD validation)
-            domain_matches = IOCPatterns.DOMAIN.findall(content)
-            valid_domains = [
-                refang(d).lower() for d in set(domain_matches) if validate_domain(d)
-            ]
-            if valid_domains:
-                extracted["domain"] = sorted(set(valid_domains))
-
-            # Hashes
-            for hash_type, pattern in [
-                ("md5", IOCPatterns.MD5),
-                ("sha1", IOCPatterns.SHA1),
-                ("sha256", IOCPatterns.SHA256),
-            ]:
-                matches = pattern.findall(content)
-                valid_hashes = [
-                    h.lower() for h in set(matches) if validate_hash(h, hash_type)
-                ]
-                if valid_hashes:
-                    extracted[hash_type] = sorted(valid_hashes)
-
-            # CVEs
-            cve_matches = IOCPatterns.CVE.findall(content)
-            if cve_matches:
-                extracted["cve"] = sorted(set(c.upper() for c in cve_matches))
-
-            # URLs
-            url_matches = IOCPatterns.URL.findall(content)
-            if url_matches:
-                extracted["url"] = sorted(set(refang(u) for u in url_matches))
-
-            # Emails
-            email_matches = IOCPatterns.EMAIL.findall(content)
-            if email_matches:
-                # Filter out common false positives
-                valid_emails = [
-                    e.lower()
-                    for e in set(email_matches)
-                    if not e.lower().endswith(("@example.com", "@test.com"))
-                ]
-                if valid_emails:
-                    extracted["email"] = sorted(valid_emails)
-
+        return _run_with_timeout(
+            lambda: _extract_iocs_internal(content),
+            EXTRACTION_TIMEOUT_SECONDS,
+        )
     except TimeoutError:
         logger.error("IOC extraction timed out - possible ReDoS attempt")
+        return {}
     except Exception as e:
         logger.error(f"IOC extraction failed: {e}")
-
-    return extracted
+        return {}

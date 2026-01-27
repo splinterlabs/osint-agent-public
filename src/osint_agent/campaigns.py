@@ -8,12 +8,15 @@ from __future__ import annotations
 
 import json
 import logging
+import tempfile
 import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
+
+from filelock import FileLock
 
 logger = logging.getLogger(__name__)
 
@@ -258,7 +261,13 @@ class Campaign:
 
 
 class CampaignManager:
-    """Manages campaign storage and retrieval."""
+    """Manages campaign storage and retrieval.
+
+    Uses index data structures for O(1) lookups by IOC, TTP, and CVE.
+    """
+
+    # Lock timeout in seconds
+    LOCK_TIMEOUT = 10
 
     def __init__(self, data_dir: Optional[Path] = None):
         """Initialize campaign manager.
@@ -269,37 +278,118 @@ class CampaignManager:
         self.data_dir = data_dir or Path("data/campaigns")
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self._campaigns: dict[str, Campaign] = {}
+        # Index structures for fast lookups
+        self._ioc_index: dict[str, set[str]] = {}  # "type:value" -> campaign_ids
+        self._ttp_index: dict[str, set[str]] = {}  # technique_id -> campaign_ids
+        self._cve_index: dict[str, set[str]] = {}  # cve_id -> campaign_ids
+        self._lock = FileLock(self._get_lock_path(), timeout=self.LOCK_TIMEOUT)
         self._load_campaigns()
 
     def _get_storage_path(self) -> Path:
         """Get path to campaigns storage file."""
         return self.data_dir / "campaigns.json"
 
+    def _get_lock_path(self) -> Path:
+        """Get path to lock file."""
+        return self.data_dir / "campaigns.json.lock"
+
     def _load_campaigns(self) -> None:
-        """Load campaigns from storage."""
+        """Load campaigns from storage with file locking."""
         storage_path = self._get_storage_path()
         if not storage_path.exists():
             return
 
         try:
-            with open(storage_path) as f:
-                data = json.load(f)
-                for campaign_data in data.get("campaigns", []):
-                    campaign = Campaign.from_dict(campaign_data)
-                    self._campaigns[campaign.id] = campaign
+            with self._lock:
+                with open(storage_path) as f:
+                    data = json.load(f)
+                    for campaign_data in data.get("campaigns", []):
+                        campaign = Campaign.from_dict(campaign_data)
+                        self._campaigns[campaign.id] = campaign
+                        self._index_campaign(campaign)
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Failed to load campaigns: {e}")
 
+    def _index_campaign(self, campaign: Campaign) -> None:
+        """Add campaign to all indexes."""
+        # Index IOCs
+        for ioc in campaign.iocs:
+            key = f"{ioc.ioc_type}:{ioc.value}"
+            if key not in self._ioc_index:
+                self._ioc_index[key] = set()
+            self._ioc_index[key].add(campaign.id)
+
+        # Index TTPs
+        for ttp in campaign.ttps:
+            if ttp.technique_id not in self._ttp_index:
+                self._ttp_index[ttp.technique_id] = set()
+            self._ttp_index[ttp.technique_id].add(campaign.id)
+
+        # Index CVEs
+        for cve_id in campaign.cves:
+            if cve_id not in self._cve_index:
+                self._cve_index[cve_id] = set()
+            self._cve_index[cve_id].add(campaign.id)
+
+    def _unindex_campaign(self, campaign: Campaign) -> None:
+        """Remove campaign from all indexes."""
+        # Unindex IOCs
+        for ioc in campaign.iocs:
+            key = f"{ioc.ioc_type}:{ioc.value}"
+            if key in self._ioc_index:
+                self._ioc_index[key].discard(campaign.id)
+                if not self._ioc_index[key]:
+                    del self._ioc_index[key]
+
+        # Unindex TTPs
+        for ttp in campaign.ttps:
+            if ttp.technique_id in self._ttp_index:
+                self._ttp_index[ttp.technique_id].discard(campaign.id)
+                if not self._ttp_index[ttp.technique_id]:
+                    del self._ttp_index[ttp.technique_id]
+
+        # Unindex CVEs
+        for cve_id in campaign.cves:
+            if cve_id in self._cve_index:
+                self._cve_index[cve_id].discard(campaign.id)
+                if not self._cve_index[cve_id]:
+                    del self._cve_index[cve_id]
+
+    def _reindex_campaign(self, campaign: Campaign) -> None:
+        """Reindex a campaign after updates."""
+        # Get old version if exists
+        old_campaign = self._campaigns.get(campaign.id)
+        if old_campaign:
+            self._unindex_campaign(old_campaign)
+        self._index_campaign(campaign)
+
     def _save_campaigns(self) -> None:
-        """Save campaigns to storage."""
+        """Save campaigns to storage with atomic write and file locking.
+
+        Uses write-to-temp-then-rename pattern for atomicity.
+        """
         storage_path = self._get_storage_path()
         try:
-            with open(storage_path, "w") as f:
-                json.dump(
-                    {"campaigns": [c.to_dict() for c in self._campaigns.values()]},
-                    f,
-                    indent=2,
+            with self._lock:
+                # Write to temporary file first
+                fd, tmp_path = tempfile.mkstemp(
+                    dir=self.data_dir,
+                    prefix=".campaigns_",
+                    suffix=".json.tmp",
                 )
+                try:
+                    with open(fd, "w") as f:
+                        json.dump(
+                            {"campaigns": [c.to_dict() for c in self._campaigns.values()]},
+                            f,
+                            indent=2,
+                        )
+                    # Atomic rename (works on POSIX, best-effort on Windows)
+                    Path(tmp_path).replace(storage_path)
+                except Exception:
+                    # Clean up temp file on failure
+                    Path(tmp_path).unlink(missing_ok=True)
+                    raise
         except IOError as e:
             logger.error(f"Failed to save campaigns: {e}")
 
@@ -333,6 +423,7 @@ class CampaignManager:
             tags=tags or [],
         )
         self._campaigns[campaign.id] = campaign
+        self._index_campaign(campaign)
         self._save_campaigns()
         return campaign
 
@@ -381,12 +472,15 @@ class CampaignManager:
     def update(self, campaign: Campaign) -> None:
         """Update campaign in storage."""
         campaign.updated_at = datetime.utcnow().isoformat()
+        self._reindex_campaign(campaign)
         self._campaigns[campaign.id] = campaign
         self._save_campaigns()
 
     def delete(self, campaign_id: str) -> bool:
         """Delete campaign by ID."""
         if campaign_id in self._campaigns:
+            campaign = self._campaigns[campaign_id]
+            self._unindex_campaign(campaign)
             del self._campaigns[campaign_id]
             self._save_campaigns()
             return True
@@ -395,6 +489,8 @@ class CampaignManager:
     def find_by_ioc(self, ioc_type: str, value: str) -> list[Campaign]:
         """Find campaigns containing an IOC.
 
+        Uses index for O(1) lookup instead of scanning all campaigns.
+
         Args:
             ioc_type: Type of IOC
             value: IOC value
@@ -402,16 +498,14 @@ class CampaignManager:
         Returns:
             List of campaigns containing the IOC
         """
-        results = []
-        for campaign in self._campaigns.values():
-            for ioc in campaign.iocs:
-                if ioc.ioc_type == ioc_type and ioc.value == value:
-                    results.append(campaign)
-                    break
-        return results
+        key = f"{ioc_type}:{value}"
+        campaign_ids = self._ioc_index.get(key, set())
+        return [self._campaigns[cid] for cid in campaign_ids if cid in self._campaigns]
 
     def find_by_ttp(self, technique_id: str) -> list[Campaign]:
         """Find campaigns using a technique.
+
+        Uses index for O(1) lookup instead of scanning all campaigns.
 
         Args:
             technique_id: ATT&CK technique ID
@@ -419,16 +513,13 @@ class CampaignManager:
         Returns:
             List of campaigns using the technique
         """
-        results = []
-        for campaign in self._campaigns.values():
-            for ttp in campaign.ttps:
-                if ttp.technique_id == technique_id:
-                    results.append(campaign)
-                    break
-        return results
+        campaign_ids = self._ttp_index.get(technique_id, set())
+        return [self._campaigns[cid] for cid in campaign_ids if cid in self._campaigns]
 
     def find_by_cve(self, cve_id: str) -> list[Campaign]:
         """Find campaigns exploiting a CVE.
+
+        Uses index for O(1) lookup instead of scanning all campaigns.
 
         Args:
             cve_id: CVE identifier
@@ -436,11 +527,8 @@ class CampaignManager:
         Returns:
             List of campaigns exploiting the CVE
         """
-        results = []
-        for campaign in self._campaigns.values():
-            if cve_id in campaign.cves:
-                results.append(campaign)
-        return results
+        campaign_ids = self._cve_index.get(cve_id, set())
+        return [self._campaigns[cid] for cid in campaign_ids if cid in self._campaigns]
 
     def get_statistics(self) -> dict[str, Any]:
         """Get campaign statistics."""

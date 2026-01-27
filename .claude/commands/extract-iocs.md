@@ -68,5 +68,5 @@ Present extracted IOCs grouped by type:
 
 Also offer to:
 1. Save IOCs to the database (`data/iocs.db`)
-2. Export as STIX format
-3. Export as JSON
+2. Export as STIX format (save to `reports/`)
+3. Export as JSON (save to `reports/`)
