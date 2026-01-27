@@ -26,6 +26,7 @@ dev = [
 # MCP integration tests require the mcp package
 mcp = [
     "mcp>=1.0,<2.0",
+    "beautifulsoup4>=4.12,<5.0",
 ]
 
 [project.scripts]
