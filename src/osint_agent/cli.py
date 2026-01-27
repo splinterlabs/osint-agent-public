@@ -1,5 +1,7 @@
 """CLI for OSINT Agent operations."""
 
+from __future__ import annotations
+
 import argparse
 import sqlite3
 import sys
@@ -10,6 +12,8 @@ from .keymanager import delete_api_key, print_key_status, set_api_key, KEYS
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 IOC_DB_PATH = PROJECT_ROOT / "data" / "iocs.db"
+DEFAULT_QUERY_LIMIT = 50
+DEFAULT_RECENT_LIMIT = 20
 
 
 def cmd_keys(args: argparse.Namespace) -> int:
@@ -29,12 +33,8 @@ def cmd_keys(args: argparse.Namespace) -> int:
             print(f"Valid keys: {', '.join(KEYS.keys())}")
             return 1
 
-        # Read value from stdin or prompt
-        if args.value:
-            value = args.value
-        else:
-            import getpass
-            value = getpass.getpass(f"Enter value for {args.key_name}: ")
+        import getpass
+        value = getpass.getpass(f"Enter value for {args.key_name}: ")
 
         if set_api_key(args.key_name, value):
             return 0
@@ -102,8 +102,8 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                 print("Error: search requires a query argument")
                 return 1
             cursor.execute(
-                "SELECT * FROM iocs WHERE value LIKE ? OR source LIKE ? ORDER BY last_seen DESC LIMIT 50",
-                (f"%{query}%", f"%{query}%"),
+                "SELECT * FROM iocs WHERE value LIKE ? OR source LIKE ? ORDER BY last_seen DESC LIMIT ?",
+                (f"%{query}%", f"%{query}%", DEFAULT_QUERY_LIMIT),
             )
             rows = cursor.fetchall()
             if args.format == "json":
@@ -118,7 +118,7 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                         print(f"{r['type']:10s} {r['value'][:45]:45s} {(r['source'] or '')[:20]:20s} {r['last_seen'][:20]:20s} {r['hit_count']}")
 
         elif action == "recent":
-            limit = 20
+            limit = DEFAULT_RECENT_LIMIT
             cursor.execute("SELECT * FROM iocs ORDER BY last_seen DESC LIMIT ?", (limit,))
             rows = cursor.fetchall()
             if args.format == "json":
@@ -141,7 +141,7 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                 print(f"Error: Unknown IOC type '{query}'")
                 print(f"Valid types: {', '.join(valid_types)}")
                 return 1
-            cursor.execute("SELECT * FROM iocs WHERE type = ? ORDER BY last_seen DESC LIMIT 50", (query,))
+            cursor.execute("SELECT * FROM iocs WHERE type = ? ORDER BY last_seen DESC LIMIT ?", (query, DEFAULT_QUERY_LIMIT))
             rows = cursor.fetchall()
             if args.format == "json":
                 print(json.dumps([dict(r) for r in rows], indent=2))
@@ -243,7 +243,6 @@ def main() -> int:
         help="Key action",
     )
     keys_parser.add_argument("key_name", nargs="?", help="API key name")
-    keys_parser.add_argument("--value", help="Key value (or use stdin)")
     keys_parser.set_defaults(func=cmd_keys)
 
     # IOC database queries

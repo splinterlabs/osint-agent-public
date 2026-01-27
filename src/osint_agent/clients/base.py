@@ -187,7 +187,12 @@ class BaseClient:
 
                 # Handle rate limiting
                 if response.status_code == 429:
-                    retry_after = int(response.headers.get("Retry-After", 60))
+                    retry_after_raw = response.headers.get("Retry-After", "60")
+                    try:
+                        retry_after = int(retry_after_raw)
+                    except (ValueError, TypeError):
+                        # Retry-After may be a date string per HTTP spec
+                        retry_after = 60
                     raise RateLimitError(
                         f"Rate limit exceeded for {url}", retry_after=retry_after
                     )

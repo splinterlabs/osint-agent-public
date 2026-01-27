@@ -15,7 +15,9 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+import os
+import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -57,12 +59,22 @@ class ContextManager:
             return self._default_context(tier)
 
     def _save_tier(self, tier: str, data: dict[str, Any]) -> None:
-        """Save a context tier to disk."""
+        """Save a context tier to disk (atomic write)."""
         path = self._context_path(tier)
-        data["last_modified"] = datetime.utcnow().isoformat() + "Z"
+        data["last_modified"] = datetime.now(timezone.utc).isoformat()
 
-        with open(path, "w") as f:
-            json.dump(data, f, indent=2, default=str)
+        fd, tmp_path = tempfile.mkstemp(
+            dir=self.context_dir,
+            prefix=f".{tier}_",
+            suffix=".json.tmp",
+        )
+        try:
+            with open(fd, "w") as f:
+                json.dump(data, f, indent=2, default=str)
+            os.replace(tmp_path, path)
+        except Exception:
+            Path(tmp_path).unlink(missing_ok=True)
+            raise
 
         self._cache[tier] = data
 
@@ -70,8 +82,8 @@ class ContextManager:
         """Get default context for a tier."""
         base = {
             "tier": tier,
-            "created": datetime.utcnow().isoformat() + "Z",
-            "last_modified": datetime.utcnow().isoformat() + "Z",
+            "created": datetime.now(timezone.utc).isoformat(),
+            "last_modified": datetime.now(timezone.utc).isoformat(),
         }
 
         if tier == "strategic":
@@ -263,7 +275,7 @@ class ContextManager:
                     "scope": scope,
                     "stakeholders": stakeholders or [],
                     "status": "in_progress",
-                    "started": datetime.utcnow().isoformat() + "Z",
+                    "started": datetime.now(timezone.utc).isoformat(),
                 }
             },
         )
@@ -294,7 +306,7 @@ class ContextManager:
             "confidence": confidence,
             "source": source,
             "tags": tags or [],
-            "added": datetime.utcnow().isoformat() + "Z",
+            "added": datetime.now(timezone.utc).isoformat(),
         }
         self.append("tactical", "active_iocs", ioc)
 
@@ -318,6 +330,6 @@ class ContextManager:
             "description": description,
             "confidence": confidence,
             "evidence": evidence or [],
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         self.append("tactical", "findings", finding)

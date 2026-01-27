@@ -6,6 +6,16 @@ from typing import Any, Optional
 
 from .base import BaseClient
 
+# Maximum related URLs/items returned in list responses
+MAX_RELATED_ITEMS = 20
+
+
+def _check_query_status(response: dict) -> dict[str, Any] | None:
+    """Check abuse.ch query_status field. Returns error dict if not ok, None if ok."""
+    if response.get("query_status") != "ok":
+        return {"found": False, "status": response.get("query_status")}
+    return None
+
 
 class URLhausClient(BaseClient):
     """Client for URLhaus - malicious URL database.
@@ -79,11 +89,8 @@ class URLhausClient(BaseClient):
 
     def _parse_url_response(self, response: dict) -> dict[str, Any]:
         """Parse URL lookup response."""
-        if response.get("query_status") != "ok":
-            return {
-                "found": False,
-                "status": response.get("query_status"),
-            }
+        if error := _check_query_status(response):
+            return error
 
         return {
             "found": True,
@@ -109,11 +116,8 @@ class URLhausClient(BaseClient):
 
     def _parse_host_response(self, response: dict) -> dict[str, Any]:
         """Parse host lookup response."""
-        if response.get("query_status") != "ok":
-            return {
-                "found": False,
-                "status": response.get("query_status"),
-            }
+        if error := _check_query_status(response):
+            return error
 
         return {
             "found": True,
@@ -121,17 +125,14 @@ class URLhausClient(BaseClient):
             "url_count": response.get("url_count", 0),
             "blacklists": response.get("blacklists", {}),
             "urls": [
-                self._parse_url_entry(u) for u in response.get("urls", [])[:20]
+                self._parse_url_entry(u) for u in response.get("urls", [])[:MAX_RELATED_ITEMS]
             ],
         }
 
     def _parse_payload_response(self, response: dict) -> dict[str, Any]:
         """Parse payload lookup response."""
-        if response.get("query_status") != "ok":
-            return {
-                "found": False,
-                "status": response.get("query_status"),
-            }
+        if error := _check_query_status(response):
+            return error
 
         return {
             "found": True,
@@ -149,7 +150,7 @@ class URLhausClient(BaseClient):
                     "url_status": u.get("url_status"),
                     "filename": u.get("filename"),
                 }
-                for u in response.get("urls", [])[:20]
+                for u in response.get("urls", [])[:MAX_RELATED_ITEMS]
             ],
         }
 
@@ -238,11 +239,8 @@ class MalwareBazaarClient(BaseClient):
 
     def _parse_sample_response(self, response: dict) -> dict[str, Any]:
         """Parse single sample lookup response."""
-        if response.get("query_status") != "ok":
-            return {
-                "found": False,
-                "status": response.get("query_status"),
-            }
+        if error := _check_query_status(response):
+            return error
 
         data = response.get("data", [{}])[0] if response.get("data") else {}
 
@@ -271,7 +269,7 @@ class MalwareBazaarClient(BaseClient):
 
     def _parse_sample_list(self, response: dict) -> list[dict[str, Any]]:
         """Parse sample list response."""
-        if response.get("query_status") != "ok":
+        if _check_query_status(response):
             return []
 
         samples = []
@@ -365,11 +363,8 @@ class ThreatFoxClient(BaseClient):
 
     def _parse_ioc_response(self, response: dict) -> dict[str, Any]:
         """Parse single IOC lookup response."""
-        if response.get("query_status") != "ok":
-            return {
-                "found": False,
-                "status": response.get("query_status"),
-            }
+        if error := _check_query_status(response):
+            return error
 
         data = response.get("data", [{}])[0] if response.get("data") else {}
 
@@ -392,7 +387,7 @@ class ThreatFoxClient(BaseClient):
 
     def _parse_ioc_list(self, response: dict) -> list[dict[str, Any]]:
         """Parse IOC list response."""
-        if response.get("query_status") != "ok":
+        if _check_query_status(response):
             return []
 
         iocs = []

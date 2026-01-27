@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from ..keymanager import get_api_key
@@ -59,7 +59,7 @@ class NVDClient(BaseClient):
         Returns:
             List of CVE details
         """
-        end_date = datetime.utcnow()
+        end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=days)
 
         params = {
