@@ -1,4 +1,4 @@
-"""Unit tests for STIX export functionality."""
+"""Unit tests for STIX 2.1 export."""
 
 import json
 
@@ -7,129 +7,194 @@ import pytest
 from osint_agent.stix_export import (
     STIXBundle,
     create_domain_observable,
+    create_email_observable,
     create_file_hash_observable,
     create_indicator,
     create_ipv4_observable,
+    create_ipv6_observable,
+    create_malware,
     create_relationship,
     create_report,
+    create_threat_actor,
+    create_url_observable,
     create_vulnerability,
+    cve_to_stix,
     escape_stix_pattern_value,
     generate_stix_id,
     iocs_to_stix_bundle,
+    now_iso,
 )
-
-
-class TestEscapeSTIXPatternValue:
-    """Tests for STIX pattern value escaping."""
-
-    def test_escape_single_quote(self):
-        result = escape_stix_pattern_value("test'value")
-        assert result == "test\\'value"
-
-    def test_escape_backslash(self):
-        result = escape_stix_pattern_value("test\\value")
-        assert result == "test\\\\value"
-
-    def test_escape_both(self):
-        result = escape_stix_pattern_value("test\\'value")
-        assert result == "test\\\\\\'value"
-
-    def test_no_escape_needed(self):
-        result = escape_stix_pattern_value("normal-value.com")
-        assert result == "normal-value.com"
-
-    def test_url_with_special_chars(self):
-        url = "http://evil.com/path?param='value'"
-        result = escape_stix_pattern_value(url)
-        assert "\\'" in result
-        assert result == "http://evil.com/path?param=\\'value\\'"
 
 
 class TestGenerateStixId:
     """Tests for deterministic STIX ID generation."""
 
-    def test_same_input_same_id(self):
-        id1 = generate_stix_id("ipv4-addr", "8.8.8.8")
-        id2 = generate_stix_id("ipv4-addr", "8.8.8.8")
+    def test_deterministic(self):
+        id1 = generate_stix_id("ipv4-addr", "1.2.3.4")
+        id2 = generate_stix_id("ipv4-addr", "1.2.3.4")
         assert id1 == id2
 
-    def test_different_input_different_id(self):
-        id1 = generate_stix_id("ipv4-addr", "8.8.8.8")
-        id2 = generate_stix_id("ipv4-addr", "1.1.1.1")
+    def test_different_inputs_different_ids(self):
+        id1 = generate_stix_id("ipv4-addr", "1.2.3.4")
+        id2 = generate_stix_id("ipv4-addr", "5.6.7.8")
+        assert id1 != id2
+
+    def test_different_types_different_ids(self):
+        id1 = generate_stix_id("ipv4-addr", "value")
+        id2 = generate_stix_id("domain-name", "value")
         assert id1 != id2
 
     def test_id_format(self):
-        stix_id = generate_stix_id("ipv4-addr", "8.8.8.8")
-        assert stix_id.startswith("ipv4-addr--")
-        # Should be valid UUID format after prefix
+        stix_id = generate_stix_id("indicator", "test")
+        assert stix_id.startswith("indicator--")
         uuid_part = stix_id.split("--")[1]
-        assert len(uuid_part) == 36
+        parts = uuid_part.split("-")
+        assert len(parts) == 5
 
 
-class TestObservables:
+class TestEscapeStixPatternValue:
+    """Tests for STIX pattern value escaping."""
+
+    def test_escape_backslash(self):
+        assert escape_stix_pattern_value("C:\\Windows") == "C:\\\\Windows"
+
+    def test_escape_single_quote(self):
+        assert escape_stix_pattern_value("it's") == "it\\'s"
+
+    def test_escape_combined(self):
+        assert escape_stix_pattern_value("C:\\it's") == "C:\\\\it\\'s"
+
+    def test_no_escape_needed(self):
+        assert escape_stix_pattern_value("1.2.3.4") == "1.2.3.4"
+
+    def test_url_with_quotes(self):
+        url = "http://evil.com/path?param='value'"
+        result = escape_stix_pattern_value(url)
+        assert "\\'" in result
+
+
+class TestNowIso:
+    """Tests for timestamp generation."""
+
+    def test_format(self):
+        ts = now_iso()
+        assert ts.endswith(".000Z")
+        assert "T" in ts
+        assert len(ts) == 24  # YYYY-MM-DDTHH:MM:SS.000Z
+
+
+class TestSTIXBundle:
+    """Tests for STIX bundle builder."""
+
+    def test_add_object(self):
+        bundle = STIXBundle()
+        obj = {"type": "ipv4-addr", "id": "ipv4-addr--test-1", "value": "1.2.3.4"}
+        returned_id = bundle.add(obj)
+        assert returned_id == "ipv4-addr--test-1"
+        assert len(bundle.objects) == 1
+
+    def test_deduplication(self):
+        bundle = STIXBundle()
+        obj = {"type": "ipv4-addr", "id": "ipv4-addr--test-1", "value": "1.2.3.4"}
+        bundle.add(obj)
+        bundle.add(obj)
+        assert len(bundle.objects) == 1
+
+    def test_different_objects_added(self):
+        bundle = STIXBundle()
+        bundle.add({"type": "ipv4-addr", "id": "ipv4-addr--1", "value": "1.2.3.4"})
+        bundle.add({"type": "ipv4-addr", "id": "ipv4-addr--2", "value": "5.6.7.8"})
+        assert len(bundle.objects) == 2
+
+    def test_to_dict(self):
+        bundle = STIXBundle()
+        bundle.add({"type": "ipv4-addr", "id": "ipv4-addr--1", "value": "1.2.3.4"})
+        result = bundle.to_dict()
+        assert result["type"] == "bundle"
+        assert result["id"].startswith("bundle--")
+        assert len(result["objects"]) == 1
+
+    def test_to_json(self):
+        bundle = STIXBundle()
+        bundle.add({"type": "ipv4-addr", "id": "ipv4-addr--1", "value": "1.2.3.4"})
+        json_str = bundle.to_json()
+        parsed = json.loads(json_str)
+        assert parsed["type"] == "bundle"
+
+    def test_save(self, tmp_path):
+        bundle = STIXBundle()
+        bundle.add({"type": "ipv4-addr", "id": "ipv4-addr--1", "value": "1.2.3.4"})
+        path = tmp_path / "test_bundle.json"
+        bundle.save(str(path))
+        assert path.exists()
+        parsed = json.loads(path.read_text())
+        assert parsed["type"] == "bundle"
+        assert len(parsed["objects"]) == 1
+
+    def test_empty_bundle(self):
+        bundle = STIXBundle()
+        result = bundle.to_dict()
+        assert result["objects"] == []
+
+
+class TestSTIXObservables:
     """Tests for STIX Cyber Observable creation."""
 
-    def test_ipv4_observable(self):
-        obs = create_ipv4_observable("8.8.8.8", labels=["malicious"])
+    def test_create_ipv4(self):
+        obs = create_ipv4_observable("1.2.3.4", labels=["malicious"])
         assert obs["type"] == "ipv4-addr"
-        assert obs["value"] == "8.8.8.8"
+        assert obs["value"] == "1.2.3.4"
         assert obs["spec_version"] == "2.1"
-        assert "malicious" in obs["x_opencti_labels"]
+        assert obs["x_opencti_labels"] == ["malicious"]
+        assert obs["id"].startswith("ipv4-addr--")
 
-    def test_domain_observable(self):
+    def test_create_ipv4_no_labels(self):
+        obs = create_ipv4_observable("1.2.3.4")
+        assert obs["x_opencti_labels"] == []
+
+    def test_create_ipv6(self):
+        obs = create_ipv6_observable("::1")
+        assert obs["type"] == "ipv6-addr"
+        assert obs["value"] == "::1"
+        assert obs["x_opencti_labels"] == []
+
+    def test_create_domain(self):
         obs = create_domain_observable("evil.com")
         assert obs["type"] == "domain-name"
         assert obs["value"] == "evil.com"
 
-    def test_file_hash_md5(self):
+    def test_create_url(self):
+        obs = create_url_observable("https://evil.com/payload")
+        assert obs["type"] == "url"
+        assert obs["value"] == "https://evil.com/payload"
+
+    def test_create_file_hash_md5(self):
         obs = create_file_hash_observable("a" * 32, "md5")
         assert obs["type"] == "file"
-        assert "MD5" in obs["hashes"]
         assert obs["hashes"]["MD5"] == "a" * 32
 
-    def test_file_hash_sha256(self):
+    def test_create_file_hash_sha256(self):
         obs = create_file_hash_observable("b" * 64, "sha256")
-        assert obs["type"] == "file"
-        assert "SHA-256" in obs["hashes"]
+        assert obs["hashes"]["SHA-256"] == "b" * 64
 
-    def test_file_hash_normalizes_type(self):
+    def test_create_file_hash_sha1(self):
+        obs = create_file_hash_observable("c" * 40, "sha1")
+        assert obs["hashes"]["SHA-1"] == "c" * 40
+
+    def test_create_file_hash_normalizes_type(self):
         obs = create_file_hash_observable("c" * 40, "sha-1")
         assert "SHA-1" in obs["hashes"]
 
-
-class TestIndicator:
-    """Tests for STIX Indicator creation."""
-
-    def test_basic_indicator(self):
-        indicator = create_indicator(
-            pattern="[ipv4-addr:value = '8.8.8.8']",
-            name="Test Indicator",
-        )
-        assert indicator["type"] == "indicator"
-        assert indicator["pattern"] == "[ipv4-addr:value = '8.8.8.8']"
-        assert indicator["pattern_type"] == "stix"
-        assert indicator["name"] == "Test Indicator"
-
-    def test_indicator_with_confidence(self):
-        indicator = create_indicator(
-            pattern="[domain-name:value = 'evil.com']",
-            confidence=85,
-        )
-        assert indicator["confidence"] == 85
-
-    def test_indicator_with_labels(self):
-        indicator = create_indicator(
-            pattern="[url:value = 'http://malware.com']",
-            labels=["malicious", "c2"],
-        )
-        assert "malicious" in indicator["labels"]
-        assert "c2" in indicator["labels"]
+    def test_create_email(self):
+        obs = create_email_observable("attacker@evil.com")
+        assert obs["type"] == "email-addr"
+        assert obs["value"] == "attacker@evil.com"
 
 
-class TestVulnerability:
-    """Tests for STIX Vulnerability creation."""
+class TestSTIXDomainObjects:
+    """Tests for STIX Domain Object creation."""
 
-    def test_basic_vulnerability(self):
+    def test_create_vulnerability(self):
         vuln = create_vulnerability(
             cve_id="CVE-2024-1234",
             name="CVE-2024-1234",
@@ -138,167 +203,286 @@ class TestVulnerability:
         )
         assert vuln["type"] == "vulnerability"
         assert vuln["name"] == "CVE-2024-1234"
+        assert vuln["description"] == "Test vulnerability"
         assert vuln["x_opencti_cvss_base_score"] == 9.8
+        assert vuln["external_references"][0]["external_id"] == "CVE-2024-1234"
+        assert "nvd.nist.gov" in vuln["external_references"][0]["url"]
 
-    def test_vulnerability_has_external_reference(self):
+    def test_create_vulnerability_no_cvss(self):
+        vuln = create_vulnerability(
+            cve_id="CVE-2024-5678",
+            name="CVE-2024-5678",
+            description="No score",
+        )
+        assert "x_opencti_cvss_base_score" not in vuln
+
+    def test_create_vulnerability_extra_refs(self):
         vuln = create_vulnerability(
             cve_id="CVE-2024-1234",
             name="CVE-2024-1234",
             description="Test",
+            external_references=[{"source_name": "vendor", "url": "https://vendor.com"}],
         )
-        refs = vuln["external_references"]
-        assert any(ref["source_name"] == "cve" for ref in refs)
-        assert any("CVE-2024-1234" in ref.get("external_id", "") for ref in refs)
+        assert len(vuln["external_references"]) == 2
 
+    def test_create_indicator(self):
+        ind = create_indicator(
+            pattern="[ipv4-addr:value = '1.2.3.4']",
+            name="Malicious IP",
+            description="Known C2",
+            labels=["malicious-activity"],
+            confidence=85,
+        )
+        assert ind["type"] == "indicator"
+        assert ind["pattern"] == "[ipv4-addr:value = '1.2.3.4']"
+        assert ind["pattern_type"] == "stix"
+        assert ind["name"] == "Malicious IP"
+        assert ind["confidence"] == 85
+        assert ind["labels"] == ["malicious-activity"]
 
-class TestReport:
-    """Tests for STIX Report creation."""
+    def test_create_indicator_minimal(self):
+        ind = create_indicator(pattern="[ipv4-addr:value = '1.2.3.4']")
+        assert "name" not in ind
+        assert "description" not in ind
+        assert "labels" not in ind
+        assert "confidence" not in ind
 
-    def test_basic_report(self):
+    def test_create_report(self):
         report = create_report(
-            name="Daily Threat Brief",
-            description="Summary of today's threats",
+            name="Threat Report",
+            description="Analysis of campaign",
             report_types=["threat-report"],
+            object_refs=["indicator--abc"],
+            labels=["campaign"],
+            confidence=75,
         )
         assert report["type"] == "report"
-        assert report["name"] == "Daily Threat Brief"
-        assert "threat-report" in report["report_types"]
+        assert report["name"] == "Threat Report"
+        assert report["report_types"] == ["threat-report"]
+        assert "indicator--abc" in report["object_refs"]
+        assert report["confidence"] == 75
 
-    def test_report_with_object_refs(self):
-        indicator_id = "indicator--12345678-1234-1234-1234-123456789012"
-        report = create_report(
-            name="Test Report",
-            description="Test",
-            object_refs=[indicator_id],
+    def test_create_report_defaults(self):
+        report = create_report(name="Simple", description="Minimal")
+        assert report["report_types"] == ["threat-report"]
+        assert report["object_refs"] == []
+
+    def test_create_threat_actor(self):
+        actor = create_threat_actor(
+            name="APT29",
+            description="Russian threat actor",
+            aliases=["Cozy Bear", "The Dukes"],
+            threat_actor_types=["nation-state"],
         )
-        assert indicator_id in report["object_refs"]
+        assert actor["type"] == "threat-actor"
+        assert actor["name"] == "APT29"
+        assert actor["aliases"] == ["Cozy Bear", "The Dukes"]
+        assert actor["threat_actor_types"] == ["nation-state"]
+
+    def test_create_threat_actor_minimal(self):
+        actor = create_threat_actor(name="Unknown")
+        assert actor["name"] == "Unknown"
+        assert "aliases" not in actor
+        assert "description" not in actor
+
+    def test_create_malware(self):
+        mal = create_malware(
+            name="Emotet",
+            description="Banking trojan",
+            malware_types=["trojan"],
+            is_family=True,
+        )
+        assert mal["type"] == "malware"
+        assert mal["name"] == "Emotet"
+        assert mal["is_family"] is True
+        assert mal["malware_types"] == ["trojan"]
+
+    def test_create_malware_defaults(self):
+        mal = create_malware(name="Unknown")
+        assert mal["is_family"] is True
+        assert "malware_types" not in mal
 
 
-class TestRelationship:
-    """Tests for STIX Relationship creation."""
+class TestSTIXRelationships:
+    """Tests for STIX Relationship Object creation."""
 
-    def test_basic_relationship(self):
+    def test_create_relationship(self):
         rel = create_relationship(
             source_ref="indicator--abc",
-            target_ref="malware--xyz",
+            target_ref="malware--def",
             relationship_type="indicates",
+            description="Indicator linked to malware",
+            confidence=90,
         )
         assert rel["type"] == "relationship"
         assert rel["relationship_type"] == "indicates"
         assert rel["source_ref"] == "indicator--abc"
-        assert rel["target_ref"] == "malware--xyz"
+        assert rel["target_ref"] == "malware--def"
+        assert rel["confidence"] == 90
 
-    def test_relationship_with_confidence(self):
-        rel = create_relationship(
-            source_ref="threat-actor--abc",
-            target_ref="malware--xyz",
-            relationship_type="uses",
-            confidence=75,
-        )
-        assert rel["confidence"] == 75
+    def test_deterministic_relationship_id(self):
+        rel1 = create_relationship("a--1", "b--2", "indicates")
+        rel2 = create_relationship("a--1", "b--2", "indicates")
+        assert rel1["id"] == rel2["id"]
+
+    def test_different_relationships_different_ids(self):
+        rel1 = create_relationship("a--1", "b--2", "indicates")
+        rel2 = create_relationship("a--1", "b--2", "uses")
+        assert rel1["id"] != rel2["id"]
+
+    def test_minimal_relationship(self):
+        rel = create_relationship("a--1", "b--2", "related-to")
+        assert "description" not in rel
+        assert "confidence" not in rel
 
 
-class TestSTIXBundle:
-    """Tests for STIX Bundle builder."""
+class TestIOCsToStixBundle:
+    """Tests for IOC-to-STIX bundle conversion."""
 
-    def test_empty_bundle(self):
-        bundle = STIXBundle()
+    def test_ipv4_bundle(self):
+        iocs = {"ipv4": ["1.2.3.4", "5.6.7.8"]}
+        bundle = iocs_to_stix_bundle(iocs)
         result = bundle.to_dict()
-        assert result["type"] == "bundle"
+        # 2 observables + 2 indicators + 2 relationships
+        assert len(result["objects"]) == 6
+
+    def test_ipv6_bundle(self):
+        iocs = {"ipv6": ["::1"]}
+        bundle = iocs_to_stix_bundle(iocs)
+        result = bundle.to_dict()
+        types = [obj["type"] for obj in result["objects"]]
+        assert "ipv6-addr" in types
+        assert "indicator" in types
+
+    def test_domain_bundle(self):
+        iocs = {"domain": ["evil.com"]}
+        bundle = iocs_to_stix_bundle(iocs)
+        result = bundle.to_dict()
+        types = [obj["type"] for obj in result["objects"]]
+        assert "domain-name" in types
+        assert "indicator" in types
+        assert "relationship" in types
+
+    def test_url_bundle(self):
+        iocs = {"url": ["https://evil.com/bad"]}
+        bundle = iocs_to_stix_bundle(iocs)
+        result = bundle.to_dict()
+        types = [obj["type"] for obj in result["objects"]]
+        assert "url" in types
+
+    def test_hash_bundle(self):
+        iocs = {"sha256": ["a" * 64]}
+        bundle = iocs_to_stix_bundle(iocs)
+        result = bundle.to_dict()
+        file_objs = [o for o in result["objects"] if o["type"] == "file"]
+        assert len(file_objs) == 1
+        assert "SHA-256" in file_objs[0]["hashes"]
+
+    def test_multiple_hash_types(self):
+        iocs = {"md5": ["a" * 32], "sha1": ["b" * 40], "sha256": ["c" * 64]}
+        bundle = iocs_to_stix_bundle(iocs)
+        result = bundle.to_dict()
+        file_objs = [o for o in result["objects"] if o["type"] == "file"]
+        assert len(file_objs) == 3
+
+    def test_email_no_indicator(self):
+        iocs = {"email": ["attacker@evil.com"]}
+        bundle = iocs_to_stix_bundle(iocs)
+        result = bundle.to_dict()
+        # Email only gets observable, no indicator
+        assert len(result["objects"]) == 1
+        assert result["objects"][0]["type"] == "email-addr"
+
+    def test_labels_applied(self):
+        iocs = {"ipv4": ["1.2.3.4"]}
+        bundle = iocs_to_stix_bundle(iocs, labels=["malicious"])
+        result = bundle.to_dict()
+        obs = [o for o in result["objects"] if o["type"] == "ipv4-addr"][0]
+        assert "malicious" in obs["x_opencti_labels"]
+
+    def test_no_indicators_flag(self):
+        iocs = {"ipv4": ["1.2.3.4"]}
+        bundle = iocs_to_stix_bundle(iocs, create_indicators=False)
+        result = bundle.to_dict()
+        assert len(result["objects"]) == 1
+        assert result["objects"][0]["type"] == "ipv4-addr"
+
+    def test_empty_iocs(self):
+        bundle = iocs_to_stix_bundle({})
+        result = bundle.to_dict()
         assert result["objects"] == []
 
-    def test_add_objects(self):
-        bundle = STIXBundle()
-        obs = create_ipv4_observable("8.8.8.8")
-        bundle.add(obs)
-        assert len(bundle.objects) == 1
-
-    def test_deduplication(self):
-        bundle = STIXBundle()
-        obs = create_ipv4_observable("8.8.8.8")
-        bundle.add(obs)
-        bundle.add(obs)  # Same object
-        assert len(bundle.objects) == 1
-
-    def test_to_json(self):
-        bundle = STIXBundle()
-        bundle.add(create_ipv4_observable("8.8.8.8"))
-        json_str = bundle.to_json()
-        parsed = json.loads(json_str)
-        assert parsed["type"] == "bundle"
-        assert len(parsed["objects"]) == 1
-
-
-class TestIOCsToSTIXBundle:
-    """Tests for bulk IOC conversion."""
-
-    def test_convert_ipv4(self):
-        iocs = {"ipv4": ["8.8.8.8", "1.1.1.1"]}
-        bundle = iocs_to_stix_bundle(iocs)
-
-        # Should have observables
-        ipv4_obs = [o for o in bundle.objects if o["type"] == "ipv4-addr"]
-        assert len(ipv4_obs) == 2
-
-    def test_convert_with_indicators(self):
-        iocs = {"ipv4": ["8.8.8.8"]}
-        bundle = iocs_to_stix_bundle(iocs, create_indicators=True)
-
-        indicators = [o for o in bundle.objects if o["type"] == "indicator"]
-        assert len(indicators) >= 1
-
-        # Should have relationship linking indicator to observable
-        relationships = [o for o in bundle.objects if o["type"] == "relationship"]
-        assert len(relationships) >= 1
-
-    def test_convert_without_indicators(self):
-        iocs = {"ipv4": ["8.8.8.8"]}
-        bundle = iocs_to_stix_bundle(iocs, create_indicators=False)
-
-        indicators = [o for o in bundle.objects if o["type"] == "indicator"]
-        assert len(indicators) == 0
-
-    def test_convert_mixed_iocs(self):
+    def test_mixed_iocs(self):
         iocs = {
-            "ipv4": ["8.8.8.8"],
+            "ipv4": ["1.2.3.4"],
             "domain": ["evil.com"],
-            "md5": ["a" * 32],
+            "sha256": ["a" * 64],
+            "url": ["https://evil.com/bad"],
+            "email": ["bad@evil.com"],
         }
-        bundle = iocs_to_stix_bundle(iocs, labels=["malicious"])
-
-        # Check all types present
-        types = {o["type"] for o in bundle.objects}
+        bundle = iocs_to_stix_bundle(iocs)
+        result = bundle.to_dict()
+        types = {obj["type"] for obj in result["objects"]}
         assert "ipv4-addr" in types
         assert "domain-name" in types
         assert "file" in types
+        assert "url" in types
+        assert "email-addr" in types
+        assert "indicator" in types
+        assert "relationship" in types
 
-    def test_labels_applied(self):
-        iocs = {"domain": ["evil.com"]}
-        bundle = iocs_to_stix_bundle(iocs, labels=["c2", "malware"])
+    def test_url_name_truncation(self):
+        long_url = "https://evil.com/" + "a" * 100
+        iocs = {"url": [long_url]}
+        bundle = iocs_to_stix_bundle(iocs)
+        result = bundle.to_dict()
+        indicators = [o for o in result["objects"] if o["type"] == "indicator"]
+        assert indicators[0]["name"].endswith("...")
 
-        domain_obs = [o for o in bundle.objects if o["type"] == "domain-name"][0]
-        assert "c2" in domain_obs["x_opencti_labels"]
-        assert "malware" in domain_obs["x_opencti_labels"]
 
-    def test_url_with_special_chars_escaped(self):
-        """Verify URLs with special characters are properly escaped in patterns."""
-        iocs = {"url": ["http://evil.com/path?q='test'"]}
-        bundle = iocs_to_stix_bundle(iocs, create_indicators=True)
+class TestCveToStix:
+    """Tests for CVE data to STIX conversion."""
 
-        indicators = [o for o in bundle.objects if o["type"] == "indicator"]
-        assert len(indicators) == 1
+    def test_basic_conversion(self):
+        cve_data = {
+            "id": "CVE-2024-1234",
+            "description": "Test vulnerability",
+            "cvss_v3_score": 9.8,
+            "references": [
+                {"url": "https://vendor.com/advisory", "source": "vendor"},
+            ],
+        }
+        result = cve_to_stix(cve_data)
+        assert result["type"] == "vulnerability"
+        assert result["name"] == "CVE-2024-1234"
+        assert result["description"] == "Test vulnerability"
+        assert result["x_opencti_cvss_base_score"] == 9.8
+        # NVD ref + vendor ref
+        assert len(result["external_references"]) == 2
 
-        pattern = indicators[0]["pattern"]
-        # Single quotes in URL should be escaped
-        assert "\\'" in pattern
-        # Pattern should be valid (no unescaped quotes breaking it)
-        assert pattern.count("'") >= 2  # Opening and closing quotes
+    def test_no_references(self):
+        cve_data = {
+            "id": "CVE-2024-5678",
+            "description": "No refs",
+            "references": [],
+        }
+        result = cve_to_stix(cve_data)
+        assert len(result["external_references"]) == 1
+        assert result["external_references"][0]["source_name"] == "cve"
 
-    def test_domain_with_special_chars_escaped(self):
-        """Verify domains are escaped (edge case for IDN)."""
-        iocs = {"domain": ["normal.com"]}
-        bundle = iocs_to_stix_bundle(iocs, create_indicators=True)
+    def test_missing_fields(self):
+        cve_data = {}
+        result = cve_to_stix(cve_data)
+        assert result["type"] == "vulnerability"
+        assert result["name"] == ""
+        assert result["description"] == ""
 
-        indicators = [o for o in bundle.objects if o["type"] == "indicator"]
-        pattern = indicators[0]["pattern"]
-        assert "[domain-name:value = 'normal.com']" == pattern
+    def test_no_cvss_score(self):
+        cve_data = {
+            "id": "CVE-2024-9999",
+            "description": "Test",
+            "cvss_v3_score": None,
+            "references": [],
+        }
+        result = cve_to_stix(cve_data)
+        assert "x_opencti_cvss_base_score" not in result
