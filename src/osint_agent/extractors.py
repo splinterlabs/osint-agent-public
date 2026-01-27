@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 EXTRACTION_TIMEOUT_SECONDS = 2
 MAX_CONTENT_LENGTH = 500_000  # 500KB max
 
+# Module-level executor to avoid per-call creation overhead
+_timeout_executor = ThreadPoolExecutor(max_workers=1)
+
 # Valid TLDs for domain validation (common + security-relevant)
 VALID_TLDS = {
     # Generic
@@ -206,12 +209,11 @@ def _run_with_timeout(func, timeout_seconds: int):
     Raises:
         TimeoutError: If execution exceeds timeout
     """
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(func)
-        try:
-            return future.result(timeout=timeout_seconds)
-        except FuturesTimeoutError:
-            raise TimeoutError(f"Operation timed out after {timeout_seconds}s")
+    future = _timeout_executor.submit(func)
+    try:
+        return future.result(timeout=timeout_seconds)
+    except FuturesTimeoutError:
+        raise TimeoutError(f"Operation timed out after {timeout_seconds}s")
 
 
 def _extract_iocs_internal(content: str) -> dict[str, list[str]]:

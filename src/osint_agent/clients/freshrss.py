@@ -6,6 +6,8 @@ import logging
 from typing import Any, Optional
 from urllib.parse import urljoin
 
+import requests
+
 from .base import APIError, BaseClient
 
 logger = logging.getLogger(__name__)
@@ -78,7 +80,7 @@ class FreshRSSClient(BaseClient):
                 proxies=self.proxy.get_proxies() if not self.proxy.should_bypass(url) else {},
             )
             response.raise_for_status()
-        except Exception as e:
+        except requests.RequestException as e:
             raise APIError(f"FreshRSS authentication failed: {e}")
 
         # Parse response - format is key=value pairs
@@ -220,7 +222,7 @@ class FreshRSSClient(BaseClient):
             )
             response.raise_for_status()
             return True
-        except Exception as e:
+        except requests.RequestException as e:
             logger.error(f"Failed to mark entries as read: {e}")
             return False
 
