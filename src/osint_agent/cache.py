@@ -7,7 +7,7 @@ import os
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 
 class ThreatContextCache:
@@ -93,7 +93,7 @@ class ThreatContextCache:
     def get_or_fetch(
         self,
         key: str,
-        fetch_fn: callable,
+        fetch_fn: Callable[[], Any],
         force_refresh: bool = False,
     ) -> Any:
         """Get cached value or fetch fresh data.

@@ -1,5 +1,7 @@
 """CLI for OSINT Agent operations."""
 
+from __future__ import annotations
+
 import argparse
 import sqlite3
 import sys
@@ -10,6 +12,8 @@ from .keymanager import delete_api_key, print_key_status, set_api_key, KEYS
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 IOC_DB_PATH = PROJECT_ROOT / "data" / "iocs.db"
+DEFAULT_QUERY_LIMIT = 50
+DEFAULT_RECENT_LIMIT = 20
 
 
 def cmd_keys(args: argparse.Namespace) -> int:
@@ -98,7 +102,7 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                 print("Error: search requires a query argument")
                 return 1
             cursor.execute(
-                "SELECT * FROM iocs WHERE value LIKE ? OR source LIKE ? ORDER BY last_seen DESC LIMIT 50",
+                f"SELECT * FROM iocs WHERE value LIKE ? OR source LIKE ? ORDER BY last_seen DESC LIMIT {DEFAULT_QUERY_LIMIT}",
                 (f"%{query}%", f"%{query}%"),
             )
             rows = cursor.fetchall()
@@ -114,7 +118,7 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                         print(f"{r['type']:10s} {r['value'][:45]:45s} {(r['source'] or '')[:20]:20s} {r['last_seen'][:20]:20s} {r['hit_count']}")
 
         elif action == "recent":
-            limit = 20
+            limit = DEFAULT_RECENT_LIMIT
             cursor.execute("SELECT * FROM iocs ORDER BY last_seen DESC LIMIT ?", (limit,))
             rows = cursor.fetchall()
             if args.format == "json":
@@ -137,7 +141,7 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                 print(f"Error: Unknown IOC type '{query}'")
                 print(f"Valid types: {', '.join(valid_types)}")
                 return 1
-            cursor.execute("SELECT * FROM iocs WHERE type = ? ORDER BY last_seen DESC LIMIT 50", (query,))
+            cursor.execute(f"SELECT * FROM iocs WHERE type = ? ORDER BY last_seen DESC LIMIT {DEFAULT_QUERY_LIMIT}", (query,))
             rows = cursor.fetchall()
             if args.format == "json":
                 print(json.dumps([dict(r) for r in rows], indent=2))

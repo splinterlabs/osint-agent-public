@@ -6,6 +6,10 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 import re
 
+# Maximum IOCs per field/direction in generated rules
+MAX_IOCS_PER_FIELD = 20
+MAX_IOCS_PER_RULE = 50
+
 
 def generate_yara_rule(
     name: str,
@@ -128,18 +132,18 @@ def generate_sigma_rule(
     detection_fields = []
 
     if iocs.get("ipv4") or iocs.get("ipv6"):
-        ips = (iocs.get("ipv4", []) + iocs.get("ipv6", []))[:50]
+        ips = (iocs.get("ipv4", []) + iocs.get("ipv6", []))[:MAX_IOCS_PER_RULE]
         if ips:
             detection_fields.append(("dst_ip", ips))
             detection_fields.append(("src_ip", ips))
 
     if iocs.get("domain"):
-        domains = iocs["domain"][:50]
+        domains = iocs["domain"][:MAX_IOCS_PER_RULE]
         detection_fields.append(("cs-host", domains))
         detection_fields.append(("query", domains))
 
     if iocs.get("url"):
-        urls = iocs["url"][:50]
+        urls = iocs["url"][:MAX_IOCS_PER_RULE]
         detection_fields.append(("cs-uri", urls))
 
     # Build YAML
@@ -171,7 +175,7 @@ def generate_sigma_rule(
         selection_name = f"selection_{i}"
         lines.append(f"    {selection_name}:")
         lines.append(f"        {field}|contains:")
-        for val in values[:20]:  # Limit per field
+        for val in values[:MAX_IOCS_PER_FIELD]:
             lines.append(f"            - '{val}'")
 
     # Condition
@@ -231,7 +235,7 @@ def generate_sigma_dns_rule(
     lines.append("detection:")
     lines.append("    selection:")
     lines.append("        query|endswith:")
-    for domain in domains[:50]:
+    for domain in domains[:MAX_IOCS_PER_RULE]:
         lines.append(f"            - '.{domain}'")
         lines.append(f"            - '{domain}'")
 
@@ -290,13 +294,13 @@ def generate_sigma_firewall_rule(
     if direction in ("both", "outbound"):
         lines.append("    selection_dst:")
         lines.append("        dst_ip:")
-        for ip in ips[:50]:
+        for ip in ips[:MAX_IOCS_PER_RULE]:
             lines.append(f"            - '{ip}'")
 
     if direction in ("both", "inbound"):
         lines.append("    selection_src:")
         lines.append("        src_ip:")
-        for ip in ips[:50]:
+        for ip in ips[:MAX_IOCS_PER_RULE]:
             lines.append(f"            - '{ip}'")
 
     if direction == "both":

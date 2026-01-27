@@ -74,6 +74,19 @@ class ClusterResult:
 class CorrelationEngine:
     """Engine for correlating IOCs and mapping behaviors to TTPs."""
 
+    # Confidence scoring weights
+    SOURCE_WEIGHT = 0.1
+    SOURCE_MAX = 0.4
+    SIGHTING_WEIGHT = 0.05
+    SIGHTING_MAX = 0.2
+    CAMPAIGN_BONUS = 0.2
+    RELATED_IOC_WEIGHT = 0.02
+    RELATED_IOC_MAX = 0.2
+    BEHAVIOR_MATCH_DIVISOR = 3.0
+    CLUSTER_CONFIDENCE_WEIGHT = 0.15
+    MAX_RELATED_IOCS = 20
+    MAX_TECHNIQUE_RESULTS = 10
+
     # Infrastructure correlation patterns
     INFRA_PATTERNS = {
         "shared_hosting": r"(?:amazonaws|digitalocean|linode|vultr|cloudflare)",
@@ -199,7 +212,7 @@ class CorrelationEngine:
                     )
                     break
 
-        return related[:20]  # Limit results
+        return related[:self.MAX_RELATED_IOCS]
 
     def _calculate_confidence(
         self, sightings: list[dict], result: CorrelationResult
@@ -207,18 +220,18 @@ class CorrelationEngine:
         """Calculate confidence score for correlation."""
         score = 0.0
 
-        # Number of sources (max 0.4)
-        score += min(len(result.sources) * 0.1, 0.4)
+        # Number of sources
+        score += min(len(result.sources) * self.SOURCE_WEIGHT, self.SOURCE_MAX)
 
-        # Number of sightings (max 0.2)
-        score += min(len(sightings) * 0.05, 0.2)
+        # Number of sightings
+        score += min(len(sightings) * self.SIGHTING_WEIGHT, self.SIGHTING_MAX)
 
-        # Campaign association (0.2)
+        # Campaign association
         if result.campaigns:
-            score += 0.2
+            score += self.CAMPAIGN_BONUS
 
-        # Related IOCs (max 0.2)
-        score += min(len(result.related_iocs) * 0.02, 0.2)
+        # Related IOCs
+        score += min(len(result.related_iocs) * self.RELATED_IOC_WEIGHT, self.RELATED_IOC_MAX)
 
         return min(score, 1.0)
 
@@ -244,7 +257,7 @@ class CorrelationEngine:
         for technique_id, score in sorted(
             technique_matches.items(), key=lambda x: x[1], reverse=True
         ):
-            technique_info = {"id": technique_id, "confidence": min(score / 3.0, 1.0)}
+            technique_info = {"id": technique_id, "confidence": min(score / self.BEHAVIOR_MATCH_DIVISOR, 1.0)}
 
             # Get full technique info if client available
             if self.attack_client:
@@ -255,7 +268,7 @@ class CorrelationEngine:
 
             results.append(technique_info)
 
-        return results[:10]
+        return results[:self.MAX_TECHNIQUE_RESULTS]
 
     def cluster_iocs(
         self,
@@ -350,7 +363,7 @@ class CorrelationEngine:
             members=iocs,
             common_sources=[source],
             time_window=time_window,
-            confidence=min(len(iocs) * 0.15, 1.0),
+            confidence=min(len(iocs) * self.CLUSTER_CONFIDENCE_WEIGHT, 1.0),
         )
 
     def find_infrastructure_patterns(self, domains: list[str]) -> dict[str, list[str]]:
