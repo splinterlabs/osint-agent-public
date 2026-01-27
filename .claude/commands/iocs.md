@@ -14,14 +14,21 @@ Query and manage the local Indicators of Compromise database.
 
 ## Instructions
 
-The IOC database is at `data/iocs.db` (SQLite). Columns: `id`, `type`, `value`, `source`, `first_seen`, `last_seen`, `hit_count`. Types: ipv4, ipv6, domain, md5, sha1, sha256, url, email, cve.
+Use the CLI to query the IOC database:
 
-### Operations
+```bash
+cd $PROJECT_ROOT && .venv/bin/python -m osint_agent.cli iocs <action> [query] --format text
+```
 
-Run SQL queries against the database:
-- **stats** (default): Count by type, total, and recent 24h additions
-- **search**: Match `$ARGUMENTS` against the `value` column
-- **filter by type**: If `$ARGUMENTS` is a type name, list recent entries of that type
-- **recent**: Show 20 most recent IOCs
+### Actions
+
+Determine the appropriate action from `$ARGUMENTS`:
+
+- **stats** (default when no arguments): `iocs stats` — Show counts by type, total, and recent 24h additions
+- **search**: `iocs search "<query>"` — Match a query against IOC values and sources. Use this when `$ARGUMENTS` looks like a CVE ID, IP address, domain, hash, or other IOC value
+- **filter**: `iocs filter <type>` — List recent entries of a given type. Use when `$ARGUMENTS` is one of: ipv4, ipv6, domain, md5, sha1, sha256, url, email, cve
+- **recent**: `iocs recent` — Show 20 most recent IOCs. Use when `$ARGUMENTS` is "recent"
+
+Use `--format json` when you need to process results programmatically.
 
 Present results in a readable table format.
