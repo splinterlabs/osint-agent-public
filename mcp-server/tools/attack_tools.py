@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from osint_agent.clients.attack import ATTACKClient
+from osint_agent.usage import track_tool
 
 
 def get_attack_client() -> ATTACKClient:
@@ -21,6 +22,7 @@ def register_tools(mcp):
     """Register ATT&CK tools with MCP server."""
 
     @mcp.tool()
+    @track_tool("attack_technique_lookup")
     def attack_technique_lookup(technique_id: str) -> str:
         """Look up a MITRE ATT&CK technique by ID or name.
 
@@ -85,6 +87,7 @@ def register_tools(mcp):
             return f"ATT&CK lookup failed: {e}"
 
     @mcp.tool()
+    @track_tool("attack_search_techniques")
     def attack_search_techniques(
         query: str,
         tactic: str = "",
@@ -130,6 +133,7 @@ def register_tools(mcp):
             return f"ATT&CK search failed: {e}"
 
     @mcp.tool()
+    @track_tool("attack_list_tactics")
     def attack_list_tactics() -> str:
         """List all ATT&CK tactics in kill chain order.
 
@@ -156,6 +160,7 @@ def register_tools(mcp):
             return f"Failed to list tactics: {e}"
 
     @mcp.tool()
+    @track_tool("attack_group_lookup")
     def attack_group_lookup(group_id: str) -> str:
         """Look up a threat actor/group in ATT&CK.
 
@@ -194,6 +199,7 @@ def register_tools(mcp):
             return f"Group lookup failed: {e}"
 
     @mcp.tool()
+    @track_tool("attack_software_lookup")
     def attack_software_lookup(software_id: str) -> str:
         """Look up malware or tool in ATT&CK.
 
@@ -236,6 +242,7 @@ def register_tools(mcp):
             return f"Software lookup failed: {e}"
 
     @mcp.tool()
+    @track_tool("attack_map_behavior")
     def attack_map_behavior(behavior: str) -> str:
         """Map observed behavior to likely ATT&CK techniques.
 

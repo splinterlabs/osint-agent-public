@@ -32,3 +32,14 @@ Determine the appropriate action from `$ARGUMENTS`:
 Use `--format json` when you need to process results programmatically.
 
 Present results in a readable table format.
+
+### Usage Footnote
+
+Call the `get_investigation_usage` MCP tool and display a compact footnote at the very end:
+
+```
+---
+> usage: {total_tool_calls} tool calls | {total_api_requests} API requests | {total_api_errors} errors
+```
+
+Always display this as the last line of output.

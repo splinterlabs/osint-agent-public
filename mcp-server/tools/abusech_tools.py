@@ -12,6 +12,7 @@ from osint_agent.clients.abusech import (
     ThreatFoxClient,
 )
 from osint_agent.keymanager import get_api_key
+from osint_agent.usage import track_tool
 
 logger = logging.getLogger("osint-mcp.abusech")
 
@@ -52,6 +53,7 @@ def register_tools(mcp: FastMCP) -> None:
     # ============ URLhaus Tools ============
 
     @mcp.tool()
+    @track_tool("lookup_url_urlhaus")
     def lookup_url_urlhaus(url: str) -> str:
         """Look up a URL in URLhaus malicious URL database.
 
@@ -73,6 +75,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("lookup_host_urlhaus")
     def lookup_host_urlhaus(host: str) -> str:
         """Look up a host (domain/IP) in URLhaus.
 
@@ -94,6 +97,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("get_recent_urls_urlhaus")
     def get_recent_urls_urlhaus(limit: int = 100) -> str:
         """Get recently reported malicious URLs from URLhaus.
 
@@ -117,6 +121,7 @@ def register_tools(mcp: FastMCP) -> None:
     # ============ MalwareBazaar Tools ============
 
     @mcp.tool()
+    @track_tool("lookup_hash_malwarebazaar")
     def lookup_hash_malwarebazaar(hash_value: str) -> str:
         """Look up a malware sample by hash in MalwareBazaar.
 
@@ -138,6 +143,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("search_malware_bazaar")
     def search_malware_bazaar(
         query: str,
         query_type: str = "tag",
@@ -175,6 +181,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("get_recent_malware_bazaar")
     def get_recent_malware_bazaar(limit: int = 100) -> str:
         """Get recently submitted malware samples from MalwareBazaar.
 
@@ -198,6 +205,7 @@ def register_tools(mcp: FastMCP) -> None:
     # ============ ThreatFox Tools ============
 
     @mcp.tool()
+    @track_tool("lookup_ioc_threatfox")
     def lookup_ioc_threatfox(ioc: str) -> str:
         """Look up an IOC in ThreatFox database.
 
@@ -219,6 +227,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("search_threatfox")
     def search_threatfox(
         query: str,
         query_type: str = "malware",
@@ -256,6 +265,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("get_recent_iocs_threatfox")
     def get_recent_iocs_threatfox(days: int = 3) -> str:
         """Get recently reported IOCs from ThreatFox.
 

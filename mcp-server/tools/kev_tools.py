@@ -9,6 +9,7 @@ from functools import lru_cache
 from mcp.server.fastmcp import FastMCP
 
 from osint_agent.clients.cisa_kev import CISAKEVClient
+from osint_agent.usage import track_tool
 
 logger = logging.getLogger("osint-mcp.kev")
 
@@ -23,6 +24,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register KEV tools with the MCP server."""
 
     @mcp.tool()
+    @track_tool("check_kev")
     def check_kev(cve_id: str) -> str:
         """Check if a CVE is in CISA's Known Exploited Vulnerabilities catalog.
 
@@ -56,6 +58,7 @@ def register_tools(mcp: FastMCP) -> None:
             )
 
     @mcp.tool()
+    @track_tool("search_kev_vendor")
     def search_kev_vendor(vendor: str) -> str:
         """Find Known Exploited Vulnerabilities for a specific vendor.
 
@@ -80,6 +83,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("get_kev_stats")
     def get_kev_stats() -> str:
         """Get statistics about CISA's Known Exploited Vulnerabilities catalog.
 

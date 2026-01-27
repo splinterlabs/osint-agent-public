@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from osint_agent.clients.shodan import ShodanClient
 from osint_agent.keymanager import get_api_key
+from osint_agent.usage import track_tool
 
 
 def get_shodan_client() -> ShodanClient:
@@ -27,6 +28,7 @@ def register_tools(mcp):
     """Register Shodan tools with MCP server."""
 
     @mcp.tool()
+    @track_tool("shodan_host_lookup")
     def shodan_host_lookup(ip: str, include_history: bool = False) -> str:
         """Look up detailed information about an IP address using Shodan.
 
@@ -93,6 +95,7 @@ def register_tools(mcp):
             return f"Shodan lookup failed: {e}"
 
     @mcp.tool()
+    @track_tool("shodan_search")
     def shodan_search(
         query: str,
         page: int = 1,
@@ -155,6 +158,7 @@ def register_tools(mcp):
             return f"Shodan search failed: {e}"
 
     @mcp.tool()
+    @track_tool("shodan_dns_lookup")
     def shodan_dns_lookup(domain: str) -> str:
         """Get DNS information and subdomains for a domain.
 
@@ -210,6 +214,7 @@ def register_tools(mcp):
             return f"Shodan DNS lookup failed: {e}"
 
     @mcp.tool()
+    @track_tool("shodan_vuln_lookup")
     def shodan_vuln_lookup(cve_id: str) -> str:
         """Look up vulnerability details from Shodan.
 
@@ -267,6 +272,7 @@ def register_tools(mcp):
             return f"Shodan vulnerability lookup failed: {e}"
 
     @mcp.tool()
+    @track_tool("shodan_exploit_search")
     def shodan_exploit_search(query: str) -> str:
         """Search for exploits related to a vulnerability or product.
 

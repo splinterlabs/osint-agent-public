@@ -15,6 +15,8 @@ from pathlib import Path
 # Add parent paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
+from osint_agent.usage import track_tool
+
 logger = logging.getLogger(__name__)
 
 # Realistic browser User-Agents (updated for 2026)
@@ -69,6 +71,7 @@ def register_tools(mcp):
     """Register web fetching tools with MCP server."""
 
     @mcp.tool()
+    @track_tool("local_web_fetch")
     def local_web_fetch(url: str, extract_text: bool = True, timeout: int = 30, verify_ssl: bool = True) -> str:
         """Fetch URL content using local requests library with realistic browser headers.
 
@@ -155,6 +158,7 @@ def register_tools(mcp):
             return f"Error: {type(e).__name__}: {str(e)}"
 
     @mcp.tool()
+    @track_tool("local_web_fetch_json")
     def local_web_fetch_json(url: str, timeout: int = 30, verify_ssl: bool = True) -> str:
         """Fetch JSON data from a URL using local requests with realistic headers.
 
@@ -213,6 +217,7 @@ def register_tools(mcp):
             return f"Error: {type(e).__name__}: {str(e)}"
 
     @mcp.tool()
+    @track_tool("local_web_fetch_raw")
     def local_web_fetch_raw(url: str, timeout: int = 30, verify_ssl: bool = True) -> str:
         """Fetch raw content from a URL (binary-safe).
 

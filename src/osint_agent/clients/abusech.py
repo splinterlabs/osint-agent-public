@@ -90,7 +90,7 @@ class URLhausClient(AbuseCHClient):
         Returns:
             List of recent malicious URLs
         """
-        response = self.post("/urls/recent/", form_data={"limit": min(limit, 1000)})
+        response = self.get("/urls/recent/", params={"limit": min(limit, 1000)})
 
         urls = []
         for entry in response.get("urls", []):

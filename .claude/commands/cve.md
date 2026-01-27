@@ -67,3 +67,14 @@ After displaying CVE info, offer to:
 3. Generate YARA/Sigma rules if applicable
 4. Save full report to `reports/`
 
+### Usage Footnote
+
+Call the `get_investigation_usage` MCP tool and display a compact footnote at the very end:
+
+```
+---
+> usage: {total_tool_calls} tool calls | {total_api_requests} API requests | {total_api_errors} errors
+```
+
+Always display this as the last line of output.
+
