@@ -102,8 +102,8 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                 print("Error: search requires a query argument")
                 return 1
             cursor.execute(
-                f"SELECT * FROM iocs WHERE value LIKE ? OR source LIKE ? ORDER BY last_seen DESC LIMIT {DEFAULT_QUERY_LIMIT}",
-                (f"%{query}%", f"%{query}%"),
+                "SELECT * FROM iocs WHERE value LIKE ? OR source LIKE ? ORDER BY last_seen DESC LIMIT ?",
+                (f"%{query}%", f"%{query}%", DEFAULT_QUERY_LIMIT),
             )
             rows = cursor.fetchall()
             if args.format == "json":
@@ -141,7 +141,7 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                 print(f"Error: Unknown IOC type '{query}'")
                 print(f"Valid types: {', '.join(valid_types)}")
                 return 1
-            cursor.execute(f"SELECT * FROM iocs WHERE type = ? ORDER BY last_seen DESC LIMIT {DEFAULT_QUERY_LIMIT}", (query,))
+            cursor.execute("SELECT * FROM iocs WHERE type = ? ORDER BY last_seen DESC LIMIT ?", (query, DEFAULT_QUERY_LIMIT))
             rows = cursor.fetchall()
             if args.format == "json":
                 print(json.dumps([dict(r) for r in rows], indent=2))
