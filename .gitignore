@@ -41,6 +41,7 @@ htmlcov/
 
 # Lock files (users generate their own)
 uv.lock
+config/watchlist.json
 
 # mypy
 .mypy_cache/
