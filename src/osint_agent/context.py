@@ -120,6 +120,7 @@ class ContextManager:
                 "working_hypotheses": [],
                 "findings": [],
                 "next_steps": [],
+                "usage_stats": {},
             }
 
         elif tier == "technical":
@@ -233,6 +234,7 @@ class ContextManager:
                 "priority_count": len(all_ctx["tactical"].get("priorities", [])),
                 "active_ioc_count": len(all_ctx["tactical"].get("active_iocs", [])),
                 "finding_count": len(all_ctx["tactical"].get("findings", [])),
+                "usage_stats": all_ctx["tactical"].get("usage_stats", {}),
             },
             "security": {
                 "classification": all_ctx["security"].get(

@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 
 from mcp.server.fastmcp import FastMCP
 
+from osint_agent.usage import track_tool
+
 logger = logging.getLogger("osint-mcp.health")
 
 
@@ -16,6 +18,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register health check tools with the MCP server."""
 
     @mcp.tool()
+    @track_tool("health_check")
     def health_check() -> str:
         """Check MCP server health and connectivity to external services.
 
@@ -126,6 +129,7 @@ def register_tools(mcp: FastMCP) -> None:
         return json.dumps(health, indent=2)
 
     @mcp.tool()
+    @track_tool("list_api_keys")
     def list_api_keys() -> str:
         """List which API keys are configured for threat intelligence services.
 
