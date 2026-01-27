@@ -8,6 +8,7 @@ import logging
 from mcp.server.fastmcp import FastMCP
 
 from osint_agent.extractors import extract_iocs
+from osint_agent.usage import track_tool
 
 logger = logging.getLogger("osint-mcp.extractors")
 
@@ -16,6 +17,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register extractor tools with the MCP server."""
 
     @mcp.tool()
+    @track_tool("extract_iocs_from_text")
     def extract_iocs_from_text(content: str) -> str:
         """Extract Indicators of Compromise (IOCs) from text content.
 

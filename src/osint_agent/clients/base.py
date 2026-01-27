@@ -163,7 +163,12 @@ class BaseClient:
         **kwargs,
     ) -> Any:
         """Make HTTP request with retry logic and error handling."""
+        from urllib.parse import urlparse
+
+        from osint_agent.usage import get_usage_tracker
+
         url = f"{self.BASE_URL}{endpoint}"
+        service = urlparse(url).hostname or "unknown"
         headers = {**self._get_headers(), **kwargs.pop("headers", {})}
 
         # Configure proxy unless bypassed for this URL
@@ -203,7 +208,9 @@ class BaseClient:
                 if response.status_code >= 400:
                     response.raise_for_status()
 
-                return response.json()
+                data = response.json()
+                get_usage_tracker().record_api_request(service)
+                return data
 
             except requests.Timeout as e:
                 last_exception = APITimeoutError(f"Request to {url} timed out")
@@ -224,6 +231,7 @@ class BaseClient:
                 logger.debug(f"Retrying in {sleep_time}s...")
                 time.sleep(sleep_time)
 
+        get_usage_tracker().record_api_request(service, error=True)
         raise last_exception or APIError("Request failed after all retries")
 
     def get(self, endpoint: str, params: Optional[dict] = None, **kwargs) -> Any:

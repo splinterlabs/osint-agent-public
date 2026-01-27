@@ -6,6 +6,7 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
+from osint_agent.usage import track_tool
 from osint_agent.rules import (
     generate_yara_rule,
     generate_sigma_rule,
@@ -20,6 +21,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register rule generation tools with the MCP server."""
 
     @mcp.tool()
+    @track_tool("generate_yara_from_hashes")
     def generate_yara_from_hashes(
         rule_name: str,
         hashes_json: str,
@@ -67,6 +69,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("generate_sigma_network")
     def generate_sigma_network(
         title: str,
         iocs_json: str,
@@ -120,6 +123,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("generate_sigma_dns")
     def generate_sigma_dns(
         title: str,
         domains_json: str,
@@ -171,6 +175,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("generate_sigma_firewall")
     def generate_sigma_firewall(
         title: str,
         ips_json: str,
