@@ -19,7 +19,7 @@ If no CVE ID is provided, ask the user for one.
 ### Using the CLI
 
 ```bash
-cd $PROJECT_ROOT && python -m osint_agent.cli lookup "$ARGUMENTS" --format text
+cd $PROJECT_ROOT && .venv/bin/python -m osint_agent.cli lookup "$ARGUMENTS" --format text
 ```
 
 ### Using MCP Tools (if available)
