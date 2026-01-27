@@ -11,7 +11,7 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -130,7 +130,7 @@ class CorrelationEngine:
                 "type": ioc_type,
                 "value": value,
                 "source": source,
-                "timestamp": timestamp or datetime.utcnow().isoformat(),
+                "timestamp": timestamp or datetime.now(timezone.utc).isoformat(),
                 "metadata": metadata or {},
             }
         )

@@ -29,12 +29,8 @@ def cmd_keys(args: argparse.Namespace) -> int:
             print(f"Valid keys: {', '.join(KEYS.keys())}")
             return 1
 
-        # Read value from stdin or prompt
-        if args.value:
-            value = args.value
-        else:
-            import getpass
-            value = getpass.getpass(f"Enter value for {args.key_name}: ")
+        import getpass
+        value = getpass.getpass(f"Enter value for {args.key_name}: ")
 
         if set_api_key(args.key_name, value):
             return 0
@@ -243,7 +239,6 @@ def main() -> int:
         help="Key action",
     )
     keys_parser.add_argument("key_name", nargs="?", help="API key name")
-    keys_parser.add_argument("--value", help="Key value (or use stdin)")
     keys_parser.set_defaults(func=cmd_keys)
 
     # IOC database queries

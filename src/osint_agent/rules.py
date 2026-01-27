@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 import re
 
@@ -38,7 +38,7 @@ def generate_yara_rule(
     if description:
         meta_lines.append(f'        description = "{_escape_yara_string(description)}"')
     meta_lines.append(f'        author = "{_escape_yara_string(author)}"')
-    meta_lines.append(f'        date = "{datetime.utcnow().strftime("%Y-%m-%d")}"')
+    meta_lines.append(f'        date = "{datetime.now(timezone.utc).strftime("%Y-%m-%d")}"')
 
     if tags:
         meta_lines.append(f'        tags = "{", ".join(tags)}"')
@@ -152,7 +152,7 @@ def generate_sigma_rule(
         lines.append(f"description: {description}")
 
     lines.append(f"author: {author}")
-    lines.append(f"date: {datetime.utcnow().strftime('%Y/%m/%d')}")
+    lines.append(f"date: {datetime.now(timezone.utc).strftime('%Y/%m/%d')}")
 
     if tags:
         lines.append("tags:")
@@ -218,7 +218,7 @@ def generate_sigma_dns_rule(
         lines.append(f"description: {description}")
 
     lines.append(f"author: {author}")
-    lines.append(f"date: {datetime.utcnow().strftime('%Y/%m/%d')}")
+    lines.append(f"date: {datetime.now(timezone.utc).strftime('%Y/%m/%d')}")
 
     if tags:
         lines.append("tags:")
@@ -275,7 +275,7 @@ def generate_sigma_firewall_rule(
         lines.append(f"description: {description}")
 
     lines.append(f"author: {author}")
-    lines.append(f"date: {datetime.utcnow().strftime('%Y/%m/%d')}")
+    lines.append(f"date: {datetime.now(timezone.utc).strftime('%Y/%m/%d')}")
 
     if tags:
         lines.append("tags:")

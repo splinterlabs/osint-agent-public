@@ -11,7 +11,7 @@ import logging
 import tempfile
 import uuid
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
@@ -193,7 +193,7 @@ class Campaign:
         notes: str = "",
     ) -> CampaignIOC:
         """Add IOC to campaign."""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         # Check if IOC already exists
         for existing in self.iocs:
@@ -227,7 +227,7 @@ class Campaign:
         confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM,
     ) -> CampaignTTP:
         """Add TTP to campaign."""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         # Check if TTP already exists
         for existing in self.ttps:
@@ -252,12 +252,12 @@ class Campaign:
         """Add CVE to campaign."""
         if cve_id not in self.cves:
             self.cves.append(cve_id)
-            self.updated_at = datetime.utcnow().isoformat()
+            self.updated_at = datetime.now(timezone.utc).isoformat()
 
     def update_status(self, status: CampaignStatus) -> None:
         """Update campaign status."""
         self.status = status
-        self.updated_at = datetime.utcnow().isoformat()
+        self.updated_at = datetime.now(timezone.utc).isoformat()
 
 
 class CampaignManager:
@@ -411,7 +411,7 @@ class CampaignManager:
         Returns:
             Created campaign
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         campaign = Campaign(
             id=str(uuid.uuid4())[:8],
             name=name,
@@ -471,7 +471,7 @@ class CampaignManager:
 
     def update(self, campaign: Campaign) -> None:
         """Update campaign in storage."""
-        campaign.updated_at = datetime.utcnow().isoformat()
+        campaign.updated_at = datetime.now(timezone.utc).isoformat()
         self._reindex_campaign(campaign)
         self._campaigns[campaign.id] = campaign
         self._save_campaigns()
