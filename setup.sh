@@ -56,6 +56,13 @@ else
     exit 1
 fi
 
+# Set Python command based on package manager
+if [ "$PKG_MANAGER" = "uv" ]; then
+    PYTHON_CMD="uv run python"
+else
+    PYTHON_CMD="python3"
+fi
+
 echo ""
 
 # Create data directories
@@ -187,8 +194,8 @@ echo -e "${YELLOW}API Keys (Optional)${NC}"
 echo ""
 echo "For enhanced functionality, configure API keys:"
 echo ""
-echo "  python -m osint_agent.cli keys set NVD_API_KEY"
-echo "  python -m osint_agent.cli keys set OTX_API_KEY"
+echo "  $PYTHON_CMD -m osint_agent.cli keys set NVD_API_KEY"
+echo "  $PYTHON_CMD -m osint_agent.cli keys set OTX_API_KEY"
 echo ""
 echo "Get keys from:"
 echo "  - NVD: https://nvd.nist.gov/developers/request-an-api-key"
@@ -197,12 +204,6 @@ echo ""
 
 # Verify installation
 echo -e "${YELLOW}Verifying installation...${NC}"
-if [ "$PKG_MANAGER" = "uv" ]; then
-    PYTHON_CMD="uv run python"
-else
-    PYTHON_CMD="python3"
-fi
-
 if $PYTHON_CMD -c "import osint_agent" 2>/dev/null; then
     echo -e "  ${GREEN}✓${NC} osint_agent module importable"
 else
@@ -220,7 +221,7 @@ echo ""
 echo -e "${GREEN}=== Setup Complete ===${NC}"
 echo ""
 echo "Quick start:"
-echo "  python -m osint_agent.cli lookup CVE-2024-3400"
+echo "  $PYTHON_CMD -m osint_agent.cli lookup CVE-2024-3400"
 echo ""
 echo "Or use Claude Code slash commands:"
 echo "  /cve CVE-2024-3400"

@@ -45,7 +45,7 @@ IOC_DB_PATH = DATA_DIR / "iocs.db"
 WATCHLIST_PATH = CONFIG_DIR / "watchlist.json"
 
 # Cache configuration
-CACHE_TTL_HOURS = 4  # Cache validity period
+CACHE_TTL_HOURS = 12  # Cache validity period
 
 
 def load_watchlist() -> dict[str, Any]:
@@ -217,26 +217,24 @@ def generate_context() -> dict[str, Any]:
     }
 
 
-def main() -> None:
-    """Hook entry point - outputs context to stdout."""
-    try:
-        context = generate_context()
+def format_output(context: dict[str, Any], full: bool = False) -> str:
+    """Format context for output. Compact by default, full with --full flag."""
+    output_lines = []
 
-        # Format output for Claude Code
-        output_lines = []
+    if context["alerts"]:
+        output_lines.append("## Watchlist Alerts")
+        for alert in context["alerts"]:
+            output_lines.append(f"- {alert}")
+        output_lines.append("")
 
-        if context["alerts"]:
-            output_lines.append("## Watchlist Alerts")
-            for alert in context["alerts"]:
-                output_lines.append(f"- {alert}")
-            output_lines.append("")
+    summary = context["summary"]
+    output_lines.append("## Threat Intelligence Summary")
+    output_lines.append(f"- Critical CVEs (7d): {summary['critical_cves_7d']}")
+    output_lines.append(f"- KEV Additions (7d): {summary['kev_additions_7d']}")
+    output_lines.append(f"- IOCs Tracked: {summary['iocs_tracked']}")
+    output_lines.append(f"- IOCs (24h): {summary['iocs_24h']}")
 
-        summary = context["summary"]
-        output_lines.append("## Threat Intelligence Summary")
-        output_lines.append(f"- Critical CVEs (7d): {summary['critical_cves_7d']}")
-        output_lines.append(f"- KEV Additions (7d): {summary['kev_additions_7d']}")
-        output_lines.append(f"- IOCs Tracked: {summary['iocs_tracked']}")
-        output_lines.append(f"- IOCs (24h): {summary['iocs_24h']}")
+    if full:
         output_lines.append("")
 
         if context["recent_critical_cves"]:
@@ -252,7 +250,21 @@ def main() -> None:
                     f"- **{kev['cve_id']}**: {kev['vendor']} {kev['product']} (due: {kev['due_date']})"
                 )
 
-        print("\n".join(output_lines))
+    return "\n".join(output_lines)
+
+
+def main() -> None:
+    """Hook entry point - outputs context to stdout.
+
+    Usage:
+        session_start.py          # Compact output (alerts + stats)
+        session_start.py --full   # Full output (alerts + stats + CVE/KEV details)
+    """
+    full = "--full" in sys.argv
+
+    try:
+        context = generate_context()
+        print(format_output(context, full=full))
 
     except Exception as e:
         logger.error(f"SessionStart hook failed: {e}")

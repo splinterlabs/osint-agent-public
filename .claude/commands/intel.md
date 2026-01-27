@@ -9,30 +9,12 @@ Get current threat intelligence including recent critical CVEs, CISA KEV additio
 
 ## Instructions
 
-Run the session start hook to fetch current threat intelligence:
+Run the session start hook with `--full` to fetch current threat intelligence:
 
 ```bash
-cd $PROJECT_ROOT && .venv/bin/python3 .claude/hooks/session_start.py
+cd $PROJECT_ROOT && .venv/bin/python3 .claude/hooks/session_start.py --full
 ```
 
-If the hook fails or for more detailed data, use the MCP tools directly:
-
-1. **Recent Critical CVEs** - Query NVD for CVEs with CVSS >= 8.0 from the last 7 days
-2. **CISA KEV Additions** - Check for recent additions to the Known Exploited Vulnerabilities catalog
-3. **IOC Summary** - Query the local IOC database for statistics
-4. **Watchlist Alerts** - Check if any watched vendors/products have new vulnerabilities
-
-## Output Format
-
-Present the results as a structured summary:
-
-- Watchlist alerts (if any) at the top with high visibility
-- Summary statistics (critical CVEs, KEV additions, IOCs tracked)
-- Top 5 recent critical CVEs with ID and CVSS score
-- Top 5 recent KEV additions with vendor, product, and due date
-
-## Arguments
-
-This command takes no arguments.
+Present the results as a structured summary with watchlist alerts at the top, summary statistics, top 5 critical CVEs, and top 5 KEV additions.
 
 After displaying the summary, offer to save the full report to `reports/`.

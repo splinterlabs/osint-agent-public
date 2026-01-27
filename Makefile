@@ -138,11 +138,11 @@ lookup:
 ifndef CVE
 	@echo "Usage: make lookup CVE=CVE-2024-3400"
 else
-	python -m osint_agent.cli lookup $(CVE) --format text
+	.venv/bin/python -m osint_agent.cli lookup $(CVE) --format text
 endif
 
 intel:
-	python -m osint_agent.cli intel
+	.venv/bin/python -m osint_agent.cli intel
 
 # =============================================================================
 # Docker (optional)
