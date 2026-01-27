@@ -8,7 +8,8 @@
     "Citrix",
     "Ivanti",
     "Juniper",
-    "Versa"
+    "Versa",
+    "GNU"
   ],
   "products": [
     "Windows Server",
