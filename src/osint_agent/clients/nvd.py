@@ -14,6 +14,7 @@ class NVDClient(BaseClient):
 
     BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
     DEFAULT_TIMEOUT = 30
+    CACHE_TTL_HOURS = 24
 
     def __init__(self, api_key: Optional[str] = None):
         key = api_key or get_api_key("NVD_API_KEY")

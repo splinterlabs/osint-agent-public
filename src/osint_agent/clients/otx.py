@@ -23,6 +23,7 @@ class OTXClient(BaseClient):
 
     BASE_URL = "https://otx.alienvault.com/api/v1"
     DEFAULT_TIMEOUT = 30
+    CACHE_TTL_HOURS = 4
 
     def __init__(self, api_key: Optional[str] = None):
         key = api_key or get_api_key("OTX_API_KEY")

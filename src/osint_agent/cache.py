@@ -2,12 +2,36 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
+
+
+def make_request_cache_key(
+    method: str,
+    url: str,
+    params: dict | None = None,
+    json_data: dict | None = None,
+    form_data: dict | None = None,
+) -> str:
+    """Generate a deterministic cache key from HTTP request parameters.
+
+    Produces a 32-char hex digest that is filesystem-safe and
+    collision-resistant.
+    """
+    parts = [method.upper(), url]
+    if params:
+        parts.append(json.dumps(sorted(params.items()), sort_keys=True, default=str))
+    if json_data:
+        parts.append("json:" + json.dumps(json_data, sort_keys=True, default=str))
+    if form_data:
+        parts.append("form:" + json.dumps(sorted(form_data.items()), sort_keys=True, default=str))
+    key_string = "|".join(parts)
+    return hashlib.sha256(key_string.encode()).hexdigest()[:32]
 
 
 class ThreatContextCache:
