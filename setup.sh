@@ -197,14 +197,20 @@ echo ""
 
 # Verify installation
 echo -e "${YELLOW}Verifying installation...${NC}"
-if python3 -c "import osint_agent" 2>/dev/null; then
+if [ "$PKG_MANAGER" = "uv" ]; then
+    PYTHON_CMD="uv run python"
+else
+    PYTHON_CMD="python3"
+fi
+
+if $PYTHON_CMD -c "import osint_agent" 2>/dev/null; then
     echo -e "  ${GREEN}✓${NC} osint_agent module importable"
 else
     echo -e "  ${RED}✗${NC} Failed to import osint_agent"
     exit 1
 fi
 
-if python3 -m osint_agent.cli --help &>/dev/null; then
+if $PYTHON_CMD -m osint_agent.cli --help &>/dev/null; then
     echo -e "  ${GREEN}✓${NC} CLI working"
 else
     echo -e "  ${YELLOW}!${NC} CLI may need additional setup"
