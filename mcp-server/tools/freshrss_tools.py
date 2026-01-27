@@ -12,6 +12,7 @@ from mcp.server.fastmcp import FastMCP
 from osint_agent.clients.freshrss import FreshRSSClient
 from osint_agent.extractors import extract_iocs
 from osint_agent.keymanager import get_api_key
+from osint_agent.parallel import get_workers, parallel_filter_map
 
 logger = logging.getLogger("osint-mcp.freshrss")
 
@@ -159,19 +160,13 @@ def register_tools(mcp: FastMCP) -> None:
             client = get_client()
             result = client.get_entries(feed_id=feed_id, count=count)
 
-            entries_with_iocs = []
-            total_iocs = 0
-
-            for entry in result["entries"]:
-                # Combine title and content for IOC extraction
+            def _process_entry(entry: dict) -> dict | None:
+                """Extract IOCs from a single feed entry."""
                 content = f"{entry.get('title', '')}\n{entry.get('summary', '')}"
                 iocs = extract_iocs(content)
-
-                # Only include entries that have IOCs
                 if any(iocs.values()):
                     ioc_count = sum(len(v) for v in iocs.values())
-                    total_iocs += ioc_count
-                    entries_with_iocs.append({
+                    return {
                         "entry_id": entry["id"],
                         "title": entry.get("title", ""),
                         "url": entry.get("url", ""),
@@ -179,7 +174,17 @@ def register_tools(mcp: FastMCP) -> None:
                         "published": entry.get("published", 0),
                         "ioc_count": ioc_count,
                         "iocs": iocs,
-                    })
+                    }
+                return None
+
+            workers = get_workers("feed_processing_workers", 10)
+            entries_with_iocs = parallel_filter_map(
+                _process_entry,
+                result["entries"],
+                max_workers=workers,
+                label="freshrss_ioc_extraction",
+            )
+            total_iocs = sum(e["ioc_count"] for e in entries_with_iocs)
 
             return json.dumps(
                 {

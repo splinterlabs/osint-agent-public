@@ -1,0 +1,11 @@
+{
+  "parallelism": {
+    "enabled": true,
+    "ioc_lookup_workers": 10,
+    "campaign_correlation_workers": 20,
+    "feed_processing_workers": 10,
+    "vendor_search_workers": 5,
+    "max_concurrent_requests": 50,
+    "rate_limit_buffer": 0.8
+  }
+}
