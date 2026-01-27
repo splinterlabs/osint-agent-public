@@ -3,6 +3,7 @@
 import json
 import logging
 from functools import lru_cache
+from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
