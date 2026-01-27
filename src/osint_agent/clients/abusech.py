@@ -6,6 +6,17 @@ from typing import Any, Optional
 
 from .base import BaseClient
 
+
+class AbuseCHClient(BaseClient):
+    """Base client for abuse.ch services that require Auth-Key header."""
+
+    def _get_headers(self) -> dict[str, str]:
+        """Add Auth-Key header if API key is configured."""
+        headers = {}
+        if self.api_key:
+            headers["Auth-Key"] = self.api_key
+        return headers
+
 # Maximum related URLs/items returned in list responses
 MAX_RELATED_ITEMS = 20
 
@@ -17,7 +28,7 @@ def _check_query_status(response: dict) -> dict[str, Any] | None:
     return None
 
 
-class URLhausClient(BaseClient):
+class URLhausClient(AbuseCHClient):
     """Client for URLhaus - malicious URL database.
 
     URLhaus is a project from abuse.ch that collects and shares malicious URLs
@@ -38,7 +49,7 @@ class URLhausClient(BaseClient):
         Returns:
             URL details including threat type, tags, and payloads
         """
-        response = self.post("/url/", json_data={"url": url})
+        response = self.post("/url/", form_data={"url": url})
         return self._parse_url_response(response)
 
     def lookup_host(self, host: str) -> dict[str, Any]:
@@ -50,7 +61,7 @@ class URLhausClient(BaseClient):
         Returns:
             Host details with associated malicious URLs
         """
-        response = self.post("/host/", json_data={"host": host})
+        response = self.post("/host/", form_data={"host": host})
         return self._parse_host_response(response)
 
     def lookup_payload(self, hash_value: str, hash_type: str = "sha256") -> dict[str, Any]:
@@ -64,9 +75,9 @@ class URLhausClient(BaseClient):
             Payload details including URLs serving it
         """
         if hash_type.lower() == "md5":
-            response = self.post("/payload/", json_data={"md5_hash": hash_value})
+            response = self.post("/payload/", form_data={"md5_hash": hash_value})
         else:
-            response = self.post("/payload/", json_data={"sha256_hash": hash_value})
+            response = self.post("/payload/", form_data={"sha256_hash": hash_value})
 
         return self._parse_payload_response(response)
 
@@ -79,7 +90,7 @@ class URLhausClient(BaseClient):
         Returns:
             List of recent malicious URLs
         """
-        response = self.post("/urls/recent/", json_data={"limit": min(limit, 1000)})
+        response = self.post("/urls/recent/", form_data={"limit": min(limit, 1000)})
 
         urls = []
         for entry in response.get("urls", []):
@@ -166,7 +177,7 @@ class URLhausClient(BaseClient):
         }
 
 
-class MalwareBazaarClient(BaseClient):
+class MalwareBazaarClient(AbuseCHClient):
     """Client for MalwareBazaar - malware sample database.
 
     MalwareBazaar is a project from abuse.ch for sharing malware samples
@@ -187,7 +198,7 @@ class MalwareBazaarClient(BaseClient):
         Returns:
             Sample details including tags, signatures, and intelligence
         """
-        response = self.post("/", json_data={"query": "get_info", "hash": hash_value})
+        response = self.post("/", form_data={"query": "get_info", "hash": hash_value})
         return self._parse_sample_response(response)
 
     def lookup_tag(self, tag: str, limit: int = 50) -> list[dict[str, Any]]:
@@ -202,7 +213,7 @@ class MalwareBazaarClient(BaseClient):
         """
         response = self.post(
             "/",
-            json_data={"query": "get_taginfo", "tag": tag, "limit": limit},
+            form_data={"query": "get_taginfo", "tag": tag, "limit": limit},
         )
         return self._parse_sample_list(response)
 
@@ -218,7 +229,7 @@ class MalwareBazaarClient(BaseClient):
         """
         response = self.post(
             "/",
-            json_data={"query": "get_siginfo", "signature": signature, "limit": limit},
+            form_data={"query": "get_siginfo", "signature": signature, "limit": limit},
         )
         return self._parse_sample_list(response)
 
@@ -233,7 +244,7 @@ class MalwareBazaarClient(BaseClient):
         """
         response = self.post(
             "/",
-            json_data={"query": "get_recent", "selector": "time", "limit": limit},
+            form_data={"query": "get_recent", "selector": "time", "limit": limit},
         )
         return self._parse_sample_list(response)
 
@@ -290,7 +301,7 @@ class MalwareBazaarClient(BaseClient):
         return samples
 
 
-class ThreatFoxClient(BaseClient):
+class ThreatFoxClient(AbuseCHClient):
     """Client for ThreatFox - IOC database.
 
     ThreatFox is a project from abuse.ch for sharing IOCs associated
