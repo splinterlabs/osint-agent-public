@@ -20,6 +20,7 @@ class ShodanClient(BaseClient):
     """
 
     BASE_URL = "https://api.shodan.io"
+    CACHE_TTL_HOURS = 6
 
     def __init__(
         self,
