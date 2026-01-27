@@ -7,7 +7,8 @@
     "VMware",
     "Citrix",
     "Ivanti",
-    "Juniper"
+    "Juniper",
+    "Versa"
   ],
   "products": [
     "Windows Server",
@@ -18,7 +19,8 @@
     "vCenter Server",
     "ESXi",
     "Citrix ADC",
-    "Pulse Secure"
+    "Pulse Secure",
+    "Concerto"
   ],
   "cpe_patterns": [
     "cpe:2.3:o:microsoft:windows_server:*",
