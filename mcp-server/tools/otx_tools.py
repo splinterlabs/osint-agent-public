@@ -126,7 +126,7 @@ def register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def get_otx_subscribed(
-        modified_since: Optional[str] = None,
+        modified_since: str | None = None,
         max_results: int = 50,
     ) -> str:
         """Get recent pulses from OTX subscriptions.
