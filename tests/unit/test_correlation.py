@@ -1,7 +1,7 @@
 """Unit tests for correlation engine."""
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from osint_agent.correlation import (
     ClusterResult,
@@ -167,7 +167,7 @@ class TestIOCClustering:
 
     def test_cluster_by_source(self):
         engine = CorrelationEngine()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         iocs = [
             {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
@@ -186,7 +186,7 @@ class TestIOCClustering:
 
     def test_cluster_time_window(self):
         engine = CorrelationEngine()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         iocs = [
             {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
@@ -205,7 +205,7 @@ class TestIOCClustering:
 
     def test_cluster_min_size(self):
         engine = CorrelationEngine()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         iocs = [
             {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
@@ -218,7 +218,7 @@ class TestIOCClustering:
 
     def test_cluster_multiple_sources(self):
         engine = CorrelationEngine()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         iocs = [
             {"type": "ipv4", "value": "192.0.2.1", "source": "source1",
@@ -237,7 +237,7 @@ class TestIOCClustering:
 
     def test_cluster_deduplication(self):
         engine = CorrelationEngine()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         iocs = [
             {"type": "ipv4", "value": "192.0.2.1", "source": "report1",

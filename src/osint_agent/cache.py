@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+import os
+import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -41,22 +43,36 @@ class ThreatContextCache:
         try:
             data = json.loads(path.read_text())
             cached_at = datetime.fromisoformat(data["cached_at"])
-            return datetime.now() - cached_at > self.ttl
+            now = datetime.now(timezone.utc)
+            # Handle naive timestamps from older cache entries
+            if cached_at.tzinfo is None:
+                cached_at = cached_at.replace(tzinfo=timezone.utc)
+            return now - cached_at > self.ttl
         except (json.JSONDecodeError, KeyError, ValueError):
             return True
 
     def set(self, key: str, value: Any) -> None:
-        """Store value in cache with timestamp."""
+        """Store value in cache with timestamp (atomic write)."""
         path = self._cache_path(key)
-        path.write_text(
-            json.dumps(
-                {
-                    "value": value,
-                    "cached_at": datetime.now().isoformat(),
-                },
-                indent=2,
-            )
+        fd, tmp_path = tempfile.mkstemp(
+            dir=self.cache_dir,
+            prefix=".cache_",
+            suffix=".json.tmp",
         )
+        try:
+            with open(fd, "w") as f:
+                json.dump(
+                    {
+                        "value": value,
+                        "cached_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                    f,
+                    indent=2,
+                )
+            os.replace(tmp_path, path)
+        except Exception:
+            Path(tmp_path).unlink(missing_ok=True)
+            raise
 
     def delete(self, key: str) -> bool:
         """Remove a cached value."""
@@ -90,9 +106,9 @@ class ThreatContextCache:
         Returns:
             Cached or freshly fetched value
         """
-        if not force_refresh:
+        if not force_refresh and not self.is_stale(key):
             cached = self.get(key)
-            if cached is not None and not self.is_stale(key):
+            if cached is not None:
                 return cached
 
         # Fetch fresh data
