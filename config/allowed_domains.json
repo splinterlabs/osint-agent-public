@@ -21,7 +21,40 @@
     "bleepingcomputer.com": {"category": "news", "rate_limit": 10, "window_seconds": 60},
     "www.bleepingcomputer.com": {"category": "news", "rate_limit": 10, "window_seconds": 60},
     "therecord.media": {"category": "news", "rate_limit": 10, "window_seconds": 60},
-    "krebsonsecurity.com": {"category": "news", "rate_limit": 10, "window_seconds": 60}
+    "krebsonsecurity.com": {"category": "news", "rate_limit": 10, "window_seconds": 60},
+    "www.greynoise.io": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "www.labs.greynoise.io": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "viz.greynoise.io": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "api.greynoise.io": {"category": "threat_intel", "rate_limit": 30, "window_seconds": 60},
+
+    "unit42.paloaltonetworks.com": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "blog.talosintelligence.com": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "www.mandiant.com": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "www.microsoft.com": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "securelist.com": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "www.welivesecurity.com": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "www.sentinelone.com": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "www.volexity.com": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "www.crowdstrike.com": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+    "socprime.com": {"category": "threat_intel", "rate_limit": 10, "window_seconds": 60},
+
+    "urlscan.io": {"category": "reputation", "rate_limit": 20, "window_seconds": 60},
+    "www.hybrid-analysis.com": {"category": "reputation", "rate_limit": 10, "window_seconds": 60},
+    "censys.io": {"category": "exposure", "rate_limit": 10, "window_seconds": 60},
+    "search.censys.io": {"category": "exposure", "rate_limit": 10, "window_seconds": 60},
+    "www.malshare.com": {"category": "reputation", "rate_limit": 10, "window_seconds": 60},
+    "phishtank.org": {"category": "reputation", "rate_limit": 10, "window_seconds": 60},
+
+    "thehackernews.com": {"category": "news", "rate_limit": 10, "window_seconds": 60},
+    "www.darkreading.com": {"category": "news", "rate_limit": 10, "window_seconds": 60},
+    "www.securityweek.com": {"category": "news", "rate_limit": 10, "window_seconds": 60},
+    "www.theregister.com": {"category": "news", "rate_limit": 10, "window_seconds": 60},
+
+    "www.ncsc.gov.uk": {"category": "official", "rate_limit": 10, "window_seconds": 60},
+    "cert.europa.eu": {"category": "official", "rate_limit": 10, "window_seconds": 60},
+    "www.cyber.gc.ca": {"category": "official", "rate_limit": 10, "window_seconds": 60},
+    "www.cert.ssi.gouv.fr": {"category": "official", "rate_limit": 10, "window_seconds": 60},
+    "kb.cert.org": {"category": "official", "rate_limit": 10, "window_seconds": 60}
   },
   "admin_notes": "To add domains: edit this file. Use 'osint domains add <domain>' for CLI."
 }
