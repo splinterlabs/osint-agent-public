@@ -8,6 +8,7 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from osint_agent.clients.otx import OTXClient
+from osint_agent.usage import track_tool
 
 logger = logging.getLogger("osint-mcp.otx")
 
@@ -22,6 +23,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register OTX tools with the MCP server."""
 
     @mcp.tool()
+    @track_tool("lookup_ioc_otx")
     def lookup_ioc_otx(indicator: str, indicator_type: str) -> str:
         """Look up an IOC in AlienVault OTX for threat intelligence.
 
@@ -62,6 +64,7 @@ def register_tools(mcp: FastMCP) -> None:
             )
 
     @mcp.tool()
+    @track_tool("search_otx_pulses")
     def search_otx_pulses(query: str, max_results: int = 20) -> str:
         """Search OTX threat intelligence pulses.
 
@@ -97,6 +100,7 @@ def register_tools(mcp: FastMCP) -> None:
             return json.dumps({"error": str(e), "query": query})
 
     @mcp.tool()
+    @track_tool("get_otx_pulse")
     def get_otx_pulse(pulse_id: str) -> str:
         """Get details of a specific OTX pulse.
 
@@ -126,6 +130,7 @@ def register_tools(mcp: FastMCP) -> None:
             return json.dumps({"error": str(e), "pulse_id": pulse_id})
 
     @mcp.tool()
+    @track_tool("get_otx_subscribed")
     def get_otx_subscribed(
         modified_since: str | None = None,
         max_results: int = 50,

@@ -8,6 +8,7 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from osint_agent.context import ContextManager
+from osint_agent.usage import get_usage_tracker, track_tool
 
 logger = logging.getLogger("osint-mcp.context")
 
@@ -30,6 +31,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register context management tools with the MCP server."""
 
     @mcp.tool()
+    @track_tool("get_context_summary")
     def get_context_summary() -> str:
         """Get a summary of the current context state.
 
@@ -48,6 +50,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("get_context")
     def get_context(tier: str, key: Optional[str] = None) -> str:
         """Get context data from a specific tier.
 
@@ -78,6 +81,7 @@ def register_tools(mcp: FastMCP) -> None:
             return json.dumps({"error": str(e)})
 
     @mcp.tool()
+    @track_tool("set_context")
     def set_context(tier: str, key: str, value_json: str) -> str:
         """Set a context value.
 
@@ -109,6 +113,7 @@ def register_tools(mcp: FastMCP) -> None:
             return json.dumps({"error": str(e)})
 
     @mcp.tool()
+    @track_tool("start_investigation")
     def start_investigation(
         name: str,
         description: str = "",
@@ -143,6 +148,8 @@ def register_tools(mcp: FastMCP) -> None:
             stakeholders=stakeholder_list,
         )
 
+        get_usage_tracker().reset(name)
+
         return json.dumps(
             {
                 "status": "investigation_started",
@@ -153,6 +160,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("add_ioc_to_context")
     def add_ioc_to_context(
         ioc_type: str,
         value: str,
@@ -199,6 +207,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("add_finding")
     def add_finding(
         title: str,
         description: str,
@@ -241,6 +250,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("get_active_iocs")
     def get_active_iocs() -> str:
         """Get all active IOCs from tactical context.
 
@@ -262,6 +272,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool()
+    @track_tool("get_findings")
     def get_findings() -> str:
         """Get all findings from tactical context.
 
@@ -281,3 +292,27 @@ def register_tools(mcp: FastMCP) -> None:
             indent=2,
             default=str,
         )
+
+    @mcp.tool()
+    @track_tool("get_investigation_usage")
+    def get_investigation_usage() -> str:
+        """Get usage statistics for the current investigation.
+
+        Returns tool call counts and API request counts accumulated since
+        the last call to start_investigation(). Also persists the snapshot
+        to the tactical context tier.
+
+        Returns:
+            JSON string with usage statistics including per-tool and
+            per-service breakdowns.
+        """
+        logger.info("Getting investigation usage stats")
+
+        tracker = get_usage_tracker()
+        stats = tracker.get_stats()
+
+        # Persist to tactical context
+        manager = get_manager()
+        manager.set("tactical", "usage_stats", stats)
+
+        return json.dumps(stats, indent=2, default=str)

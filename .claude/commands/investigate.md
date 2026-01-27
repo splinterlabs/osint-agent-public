@@ -172,3 +172,14 @@ After presenting the report, offer:
 4. Generate detection rules (YARA/Sigma) if applicable
 5. Export findings as STIX to `reports/`
 6. Investigate related indicators found during enrichment
+
+### Step 7: Usage Footnote
+
+Call the `get_investigation_usage` MCP tool and display a compact footnote at the very end:
+
+```
+---
+> usage: {total_tool_calls} tool calls | {total_api_requests} API requests | {total_api_errors} errors | investigation: {investigation_name}
+```
+
+Always display this as the last line of output.

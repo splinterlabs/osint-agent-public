@@ -9,6 +9,7 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from osint_agent.stix_export import iocs_to_stix_bundle
+from osint_agent.usage import track_tool
 
 logger = logging.getLogger("osint-mcp.stix")
 
@@ -17,6 +18,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register STIX export tools with the MCP server."""
 
     @mcp.tool()
+    @track_tool("iocs_to_stix")
     def iocs_to_stix(
         iocs_json: str,
         labels: Optional[str] = None,

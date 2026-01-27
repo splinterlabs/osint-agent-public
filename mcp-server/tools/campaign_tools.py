@@ -14,6 +14,7 @@ from osint_agent.campaigns import (
     ConfidenceLevel,
 )
 from osint_agent.correlation import CorrelationEngine
+from osint_agent.usage import track_tool
 
 
 def get_campaign_manager() -> CampaignManager:
@@ -32,6 +33,7 @@ def register_tools(mcp):
     """Register campaign tools with MCP server."""
 
     @mcp.tool()
+    @track_tool("campaign_create")
     def campaign_create(
         name: str,
         description: str,
@@ -85,6 +87,7 @@ Use `campaign_add_ioc` to add indicators to this campaign."""
             return f"Failed to create campaign: {e}"
 
     @mcp.tool()
+    @track_tool("campaign_list")
     def campaign_list(status: str = "", tag: str = "") -> str:
         """List all tracked campaigns.
 
@@ -142,6 +145,7 @@ Use `campaign_add_ioc` to add indicators to this campaign."""
             return f"Failed to list campaigns: {e}"
 
     @mcp.tool()
+    @track_tool("campaign_get")
     def campaign_get(campaign_id: str) -> str:
         """Get detailed information about a campaign.
 
@@ -240,6 +244,7 @@ Use `campaign_add_ioc` to add indicators to this campaign."""
             return f"Failed to get campaign: {e}"
 
     @mcp.tool()
+    @track_tool("campaign_add_ioc")
     def campaign_add_ioc(
         campaign_id: str,
         ioc_type: str,
@@ -291,6 +296,7 @@ Use `campaign_add_ioc` to add indicators to this campaign."""
             return f"Failed to add IOC: {e}"
 
     @mcp.tool()
+    @track_tool("campaign_add_ttp")
     def campaign_add_ttp(
         campaign_id: str,
         technique_id: str,
@@ -342,6 +348,7 @@ Use `campaign_add_ioc` to add indicators to this campaign."""
             return f"Failed to add TTP: {e}"
 
     @mcp.tool()
+    @track_tool("campaign_add_cve")
     def campaign_add_cve(campaign_id: str, cve_id: str) -> str:
         """Add a CVE to a campaign.
 
@@ -371,6 +378,7 @@ Use `campaign_add_ioc` to add indicators to this campaign."""
             return f"Failed to add CVE: {e}"
 
     @mcp.tool()
+    @track_tool("campaign_update_status")
     def campaign_update_status(campaign_id: str, status: str) -> str:
         """Update campaign status.
 
@@ -406,6 +414,7 @@ Use `campaign_add_ioc` to add indicators to this campaign."""
             return f"Failed to update status: {e}"
 
     @mcp.tool()
+    @track_tool("campaign_find_by_ioc")
     def campaign_find_by_ioc(ioc_type: str, value: str) -> str:
         """Find campaigns containing an IOC.
 
@@ -439,6 +448,7 @@ Use `campaign_add_ioc` to add indicators to this campaign."""
             return f"Failed to find campaigns: {e}"
 
     @mcp.tool()
+    @track_tool("campaign_correlate")
     def campaign_correlate(campaign_id: str) -> str:
         """Perform correlation analysis on a campaign.
 
@@ -494,6 +504,7 @@ Use `campaign_add_ioc` to add indicators to this campaign."""
             return f"Correlation analysis failed: {e}"
 
     @mcp.tool()
+    @track_tool("campaign_statistics")
     def campaign_statistics() -> str:
         """Get overall campaign statistics.
 

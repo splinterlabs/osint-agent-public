@@ -13,6 +13,7 @@ from osint_agent.clients.freshrss import FreshRSSClient
 from osint_agent.extractors import extract_iocs
 from osint_agent.keymanager import get_api_key
 from osint_agent.parallel import get_workers, parallel_filter_map
+from osint_agent.usage import track_tool
 
 logger = logging.getLogger("osint-mcp.freshrss")
 
@@ -47,6 +48,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register FreshRSS tools with the MCP server."""
 
     @mcp.tool()
+    @track_tool("freshrss_list_feeds")
     def freshrss_list_feeds() -> str:
         """List all subscribed feeds from FreshRSS.
 
@@ -73,6 +75,7 @@ def register_tools(mcp: FastMCP) -> None:
             return json.dumps({"error": f"Failed to list feeds: {e}"})
 
     @mcp.tool()
+    @track_tool("freshrss_get_entries")
     def freshrss_get_entries(
         feed_id: Optional[str] = None,
         count: int = 20,
@@ -110,6 +113,7 @@ def register_tools(mcp: FastMCP) -> None:
             return json.dumps({"error": f"Failed to get entries: {e}"})
 
     @mcp.tool()
+    @track_tool("freshrss_get_unread")
     def freshrss_get_unread(count: int = 50) -> str:
         """Get all unread entries across all subscribed feeds.
 
@@ -139,6 +143,7 @@ def register_tools(mcp: FastMCP) -> None:
             return json.dumps({"error": f"Failed to get unread entries: {e}"})
 
     @mcp.tool()
+    @track_tool("freshrss_extract_iocs")
     def freshrss_extract_iocs(feed_id: Optional[str] = None, count: int = 20) -> str:
         """Get feed entries and extract IOCs (Indicators of Compromise) from them.
 
@@ -202,6 +207,7 @@ def register_tools(mcp: FastMCP) -> None:
             return json.dumps({"error": f"Failed to extract IOCs: {e}"})
 
     @mcp.tool()
+    @track_tool("freshrss_search")
     def freshrss_search(query: str, count: int = 20) -> str:
         """Search entries by keyword across all subscribed feeds.
 
@@ -233,6 +239,7 @@ def register_tools(mcp: FastMCP) -> None:
             return json.dumps({"error": f"Failed to search: {e}"})
 
     @mcp.tool()
+    @track_tool("freshrss_mark_read")
     def freshrss_mark_read(entry_ids: str) -> str:
         """Mark entries as read.
 

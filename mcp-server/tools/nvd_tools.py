@@ -9,6 +9,7 @@ from functools import lru_cache
 from mcp.server.fastmcp import FastMCP
 
 from osint_agent.clients.nvd import NVDClient
+from osint_agent.usage import track_tool
 
 logger = logging.getLogger("osint-mcp.nvd")
 
@@ -23,6 +24,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register NVD tools with the MCP server."""
 
     @mcp.tool()
+    @track_tool("lookup_cve")
     def lookup_cve(cve_id: str) -> str:
         """Look up CVE details from NVD with active exploitation status from CISA KEV.
 
@@ -59,6 +61,7 @@ def register_tools(mcp: FastMCP) -> None:
         return json.dumps(cve_data, indent=2, default=str)
 
     @mcp.tool()
+    @track_tool("get_critical_cves")
     def get_critical_cves(
         cvss_min: float = 8.0,
         days: int = 7,
