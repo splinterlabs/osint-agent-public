@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
+from functools import lru_cache
 
 from mcp.server.fastmcp import FastMCP
 
@@ -12,16 +12,11 @@ from osint_agent.clients.cisa_kev import CISAKEVClient
 
 logger = logging.getLogger("osint-mcp.kev")
 
-# Lazy singleton
-_client: Optional[CISAKEVClient] = None
 
-
+@lru_cache(maxsize=1)
 def get_client() -> CISAKEVClient:
-    """Get or create KEV client singleton."""
-    global _client
-    if _client is None:
-        _client = CISAKEVClient()
-    return _client
+    """Get or create KEV client singleton (thread-safe via lru_cache)."""
+    return CISAKEVClient()
 
 
 def register_tools(mcp: FastMCP) -> None:

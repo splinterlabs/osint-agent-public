@@ -6,14 +6,39 @@ and identifies related indicators.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _load_behavior_techniques() -> dict[str, list[str]]:
+    """Load behavior-to-technique mappings from config file.
+
+    Falls back to empty dict if config file not found.
+    """
+    config_paths = [
+        Path(__file__).parent.parent.parent / "config" / "behavior_techniques.json",
+        Path("config/behavior_techniques.json"),
+    ]
+
+    for config_path in config_paths:
+        if config_path.exists():
+            try:
+                with open(config_path) as f:
+                    data = json.load(f)
+                    return data.get("patterns", {})
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Failed to load behavior techniques config: {e}")
+
+    logger.warning("Behavior techniques config not found, using empty mappings")
+    return {}
 
 
 @dataclass
@@ -56,78 +81,20 @@ class CorrelationEngine:
         "bulletproof": r"(?:dataclub|leaseweb|selectel|hetzner)",
     }
 
-    # Behavioral patterns mapped to techniques
-    BEHAVIOR_TECHNIQUES = {
-        # Initial Access
-        r"phish(?:ing)?": ["T1566", "T1566.001", "T1566.002"],
-        r"spear\s*phish": ["T1566.001"],
-        r"drive.by": ["T1189"],
-        r"exploit(?:ed|ing)?\s+public": ["T1190"],
-        r"supply\s*chain": ["T1195"],
-        # Execution
-        r"powershell": ["T1059.001"],
-        r"cmd(?:\.exe)?": ["T1059.003"],
-        r"wmi(?:c)?": ["T1047"],
-        r"mshta": ["T1218.005"],
-        r"rundll32": ["T1218.011"],
-        r"regsvr32": ["T1218.010"],
-        r"msiexec": ["T1218.007"],
-        r"script(?:ing)?": ["T1059"],
-        # Persistence
-        r"scheduled\s*task": ["T1053.005"],
-        r"registry\s*run": ["T1547.001"],
-        r"startup\s*folder": ["T1547.001"],
-        r"service\s*(?:install|create)": ["T1543.003"],
-        r"boot(?:kit)?": ["T1542"],
-        # Privilege Escalation
-        r"uac\s*bypass": ["T1548.002"],
-        r"token\s*(?:steal|manipul)": ["T1134"],
-        r"exploit(?:ed|ing)?\s+(?:local|priv)": ["T1068"],
-        # Defense Evasion
-        r"obfuscat": ["T1027"],
-        r"pack(?:ed|er)": ["T1027.002"],
-        r"process\s*(?:inject|hollow)": ["T1055"],
-        r"disable\s*(?:av|antivirus|defender)": ["T1562.001"],
-        r"timestomp": ["T1070.006"],
-        r"clear\s*(?:log|event)": ["T1070.001"],
-        # Credential Access
-        r"mimikatz": ["T1003.001"],
-        r"credential\s*dump": ["T1003"],
-        r"lsass": ["T1003.001"],
-        r"kerberoast": ["T1558.003"],
-        r"pass(?:word)?\s*spray": ["T1110.003"],
-        r"brute\s*force": ["T1110"],
-        # Discovery
-        r"network\s*scan": ["T1046"],
-        r"port\s*scan": ["T1046"],
-        r"whoami": ["T1033"],
-        r"(?:ad|active\s*directory)\s*enum": ["T1087.002"],
-        # Lateral Movement
-        r"rdp": ["T1021.001"],
-        r"psexec": ["T1021.002", "T1569.002"],
-        r"wmi(?:c)?\s*(?:remote|lateral)": ["T1021.003"],
-        r"ssh\s*(?:lateral|pivot)": ["T1021.004"],
-        r"pass\s*the\s*hash": ["T1550.002"],
-        r"pass\s*the\s*ticket": ["T1550.003"],
-        # Collection
-        r"keylog": ["T1056.001"],
-        r"screen\s*capture": ["T1113"],
-        r"clipboard": ["T1115"],
-        r"email\s*collect": ["T1114"],
-        # Command and Control
-        r"c2|c&c|command\s*(?:and|&)\s*control": ["T1071"],
-        r"beacon(?:ing)?": ["T1071.001"],
-        r"dns\s*tunnel": ["T1071.004"],
-        r"cobalt\s*strike": ["T1071.001"],
-        # Exfiltration
-        r"exfiltrat": ["T1041"],
-        r"data\s*(?:theft|steal)": ["T1041"],
-        # Impact
-        r"ransomware": ["T1486"],
-        r"encrypt(?:ed|ing)?\s*files": ["T1486"],
-        r"wiper": ["T1485"],
-        r"defac(?:e|ement)": ["T1491"],
-    }
+    # Behavioral patterns mapped to techniques - loaded from config
+    _behavior_techniques: Optional[dict[str, list[str]]] = None
+
+    @classmethod
+    def get_behavior_techniques(cls) -> dict[str, list[str]]:
+        """Get behavior-to-technique mappings (lazy loaded from config)."""
+        if cls._behavior_techniques is None:
+            cls._behavior_techniques = _load_behavior_techniques()
+        return cls._behavior_techniques
+
+    @classmethod
+    def reload_behavior_techniques(cls) -> None:
+        """Force reload of behavior techniques from config."""
+        cls._behavior_techniques = _load_behavior_techniques()
 
     def __init__(self, campaign_manager=None, attack_client=None):
         """Initialize correlation engine.
@@ -267,7 +234,7 @@ class CorrelationEngine:
         text_lower = text.lower()
         technique_matches: dict[str, float] = defaultdict(float)
 
-        for pattern, techniques in self.BEHAVIOR_TECHNIQUES.items():
+        for pattern, techniques in self.get_behavior_techniques().items():
             if re.search(pattern, text_lower):
                 for technique in techniques:
                     technique_matches[technique] += 1.0

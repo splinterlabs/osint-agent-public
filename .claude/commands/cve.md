@@ -78,6 +78,7 @@ After displaying CVE info, offer to:
 1. Add affected vendor/product to watchlist
 2. Search for related IOCs
 3. Generate YARA/Sigma rules if applicable
+4. Save full report to `reports/`
 
 ## Examples
 

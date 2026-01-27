@@ -41,6 +41,7 @@ htmlcov/
 
 # Lock files (users generate their own)
 uv.lock
+config/watchlist.json
 
 # mypy
 .mypy_cache/
@@ -67,6 +68,16 @@ data/campaigns/*
 !data/campaigns/.gitkeep
 data/iocs.db
 data/rate_limits.db
+
+# MCP server data (runtime generated)
+mcp-server/data/
+
+# Reports output directory
+reports/*
+!reports/.gitkeep
+
+# User-specific watchlist (use watchlist.example.json as template)
+config/watchlist.json
 
 # Claude Code hook data
 .claude/data/cache/*
@@ -97,3 +108,4 @@ coverage.xml
 
 # Keep directory structure
 !**/.gitkeep
+rules/

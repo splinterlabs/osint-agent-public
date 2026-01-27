@@ -13,9 +13,36 @@ from osint_agent.stix_export import (
     create_relationship,
     create_report,
     create_vulnerability,
+    escape_stix_pattern_value,
     generate_stix_id,
     iocs_to_stix_bundle,
 )
+
+
+class TestEscapeSTIXPatternValue:
+    """Tests for STIX pattern value escaping."""
+
+    def test_escape_single_quote(self):
+        result = escape_stix_pattern_value("test'value")
+        assert result == "test\\'value"
+
+    def test_escape_backslash(self):
+        result = escape_stix_pattern_value("test\\value")
+        assert result == "test\\\\value"
+
+    def test_escape_both(self):
+        result = escape_stix_pattern_value("test\\'value")
+        assert result == "test\\\\\\'value"
+
+    def test_no_escape_needed(self):
+        result = escape_stix_pattern_value("normal-value.com")
+        assert result == "normal-value.com"
+
+    def test_url_with_special_chars(self):
+        url = "http://evil.com/path?param='value'"
+        result = escape_stix_pattern_value(url)
+        assert "\\'" in result
+        assert result == "http://evil.com/path?param=\\'value\\'"
 
 
 class TestGenerateStixId:
@@ -252,3 +279,26 @@ class TestIOCsToSTIXBundle:
         domain_obs = [o for o in bundle.objects if o["type"] == "domain-name"][0]
         assert "c2" in domain_obs["x_opencti_labels"]
         assert "malware" in domain_obs["x_opencti_labels"]
+
+    def test_url_with_special_chars_escaped(self):
+        """Verify URLs with special characters are properly escaped in patterns."""
+        iocs = {"url": ["http://evil.com/path?q='test'"]}
+        bundle = iocs_to_stix_bundle(iocs, create_indicators=True)
+
+        indicators = [o for o in bundle.objects if o["type"] == "indicator"]
+        assert len(indicators) == 1
+
+        pattern = indicators[0]["pattern"]
+        # Single quotes in URL should be escaped
+        assert "\\'" in pattern
+        # Pattern should be valid (no unescaped quotes breaking it)
+        assert pattern.count("'") >= 2  # Opening and closing quotes
+
+    def test_domain_with_special_chars_escaped(self):
+        """Verify domains are escaped (edge case for IDN)."""
+        iocs = {"domain": ["normal.com"]}
+        bundle = iocs_to_stix_bundle(iocs, create_indicators=True)
+
+        indicators = [o for o in bundle.objects if o["type"] == "indicator"]
+        pattern = indicators[0]["pattern"]
+        assert "[domain-name:value = 'normal.com']" == pattern
