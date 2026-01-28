@@ -24,10 +24,12 @@ class TestFreshRSSAuthentication:
             username="testuser",
             password="testpass",
         )
-        token = client.authenticate()
+        result = client.authenticate()
 
-        assert token == "test_auth_token"
+        assert result is True
         assert client._auth_token == "test_auth_token"
+        # Password cleared from memory after successful auth
+        assert client._password is None
 
     @responses.activate
     def test_authenticate_failure(self):

@@ -10,6 +10,12 @@ import requests
 
 from .base import APIError, BaseClient
 
+_KEYMANAGER_AVAILABLE = True
+try:
+    from osint_agent.keymanager import get_api_key as _get_api_key
+except ImportError:
+    _KEYMANAGER_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,7 +51,7 @@ class FreshRSSClient(BaseClient):
         self.base_url = base_url.rstrip("/")
         self.BASE_URL = self.base_url
         self.username = username
-        self.password = password
+        self._password: Optional[str] = password
         self._auth_token: Optional[str] = None
         super().__init__(timeout=timeout)
 
@@ -56,16 +62,23 @@ class FreshRSSClient(BaseClient):
             headers["Authorization"] = f"GoogleLogin auth={self._auth_token}"
         return headers
 
-    def authenticate(self) -> str:
-        """Authenticate with FreshRSS and get auth token.
+    def authenticate(self) -> bool:
+        """Authenticate with FreshRSS and obtain an auth token.
 
         Returns:
-            Auth token string
+            True if authentication succeeded.
 
         Raises:
             APIError: If authentication fails
         """
         logger.info(f"Authenticating to FreshRSS at {self.base_url}")
+
+        # Re-fetch password from keymanager if it was cleared after a prior auth
+        password = self._password
+        if not password and _KEYMANAGER_AVAILABLE:
+            password = _get_api_key("FRESHRSS_PASSWORD")
+        if not password:
+            raise APIError("FreshRSS password not available for re-authentication")
 
         url = urljoin(self.base_url, "/accounts/ClientLogin")
 
@@ -74,7 +87,7 @@ class FreshRSSClient(BaseClient):
                 url,
                 data={
                     "Email": self.username,
-                    "Passwd": self.password,
+                    "Passwd": password,
                 },
                 timeout=self.timeout,
                 proxies=self.proxy.get_proxies() if not self.proxy.should_bypass(url) else {},
@@ -94,8 +107,10 @@ class FreshRSSClient(BaseClient):
             raise APIError("FreshRSS authentication response missing Auth token")
 
         self._auth_token = auth_data["Auth"]
+        # Clear password from memory now that we have a session token
+        self._password = None
         logger.info("Successfully authenticated to FreshRSS")
-        return self._auth_token
+        return True
 
     def _ensure_authenticated(self) -> None:
         """Ensure we have a valid auth token."""

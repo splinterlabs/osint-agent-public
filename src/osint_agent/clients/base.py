@@ -4,12 +4,26 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 from typing import Any, Optional
 
 import requests
 
 logger = logging.getLogger(__name__)
+
+# Matches sensitive query parameters/header values that may appear in exception messages.
+# Covers: key=, apiKey=, api_key=, Auth-Key:, Authorization:, Passwd=, password=
+_SENSITIVE_PARAM_RE = re.compile(
+    r"((?:key|apiKey|api_key|Auth-Key|Authorization|Passwd|password|token|secret)"
+    r"[=:]\s*)[^\s&,;\"']+",
+    re.IGNORECASE,
+)
+
+
+def _sanitize_message(msg: str) -> str:
+    """Redact sensitive parameter values from a string."""
+    return _SENSITIVE_PARAM_RE.sub(r"\1[REDACTED]", msg)
 
 
 class ProxyConfig:
@@ -273,9 +287,10 @@ class BaseClient:
                 raise
 
             except requests.RequestException as e:
-                last_exception = APIError(f"Request failed: {e}")
+                sanitized = _sanitize_message(str(e))
+                last_exception = APIError(f"Request failed: {sanitized}")
                 logger.warning(
-                    f"Request failed on attempt {attempt + 1}/{self.MAX_RETRIES}: {e}"
+                    f"Request failed on attempt {attempt + 1}/{self.MAX_RETRIES}: {sanitized}"
                 )
 
             # Exponential backoff
