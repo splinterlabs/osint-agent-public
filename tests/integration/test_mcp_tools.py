@@ -672,7 +672,7 @@ class TestShodanTools:
         mcp = MockFastMCP()
         shodan_tools.register_tools(mcp)
 
-        with patch("osint_agent.keymanager.get_api_key", return_value=None):
+        with patch.object(shodan_tools, "get_api_key", return_value=None):
             result = mcp.tools["shodan_host_lookup"](ip="8.8.8.8")
             assert "Error" in result or "error" in result.lower()
 
