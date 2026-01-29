@@ -13,6 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 PUBLIC_REPO_URL="${PUBLIC_REPO_URL:-}"
 PUBLIC_BRANCH="${PUBLIC_BRANCH:-main}"
+SYNC_BRANCH="sync/latest"
 DRY_RUN=false
 
 # Files/directories to exclude from public repo
@@ -61,7 +62,8 @@ fi
 
 echo "Source: $PROJECT_ROOT"
 echo "Target: $PUBLIC_REPO_URL"
-echo "Branch: $PUBLIC_BRANCH"
+echo "Target branch: $PUBLIC_BRANCH"
+echo "Sync branch: $SYNC_BRANCH"
 echo "Dry run: $DRY_RUN"
 echo ""
 
@@ -166,21 +168,51 @@ git diff --cached --stat | tail -20
 echo ""
 
 # Confirm push
-read -p "Push these changes to public repo? (y/N) " -n 1 -r
+read -p "Push these changes and create PR? (y/N) " -n 1 -r
 echo ""
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Aborted"
     exit 1
 fi
 
-# Get commit message
+# Get commit message from private repo
 LATEST_COMMIT=$(cd "$PROJECT_ROOT" && git log -1 --pretty=format:"%s")
 COMMIT_MSG="Sync: $LATEST_COMMIT"
 
 echo ""
-echo -e "${YELLOW}Committing and pushing...${NC}"
+echo -e "${YELLOW}Committing and pushing to sync branch...${NC}"
 git commit -m "$COMMIT_MSG"
-git push public "HEAD:$PUBLIC_BRANCH"
+git push -f public "HEAD:$SYNC_BRANCH"
+
+echo ""
+echo -e "${YELLOW}Creating pull request...${NC}"
+
+# Extract owner/repo from URL for gh CLI
+# Handles both https://github.com/owner/repo.git and git@github.com:owner/repo.git
+REPO_SLUG=$(echo "$PUBLIC_REPO_URL" | sed -E 's|.*github\.com[:/]||; s|\.git$||')
+
+# Check if PR already exists
+EXISTING_PR=$(gh pr list --repo "$REPO_SLUG" --head "$SYNC_BRANCH" --base "$PUBLIC_BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+if [[ -n "$EXISTING_PR" ]]; then
+    echo -e "${GREEN}Updated existing PR #${EXISTING_PR}${NC}"
+    echo "View at: https://github.com/$REPO_SLUG/pull/$EXISTING_PR"
+else
+    # Create new PR
+    PR_URL=$(gh pr create \
+        --repo "$REPO_SLUG" \
+        --head "$SYNC_BRANCH" \
+        --base "$PUBLIC_BRANCH" \
+        --title "$COMMIT_MSG" \
+        --body "Automated sync from private repository.
+
+**Latest commit:** $LATEST_COMMIT
+
+---
+*This PR was created by the sync script.*")
+
+    echo -e "${GREEN}Created PR: $PR_URL${NC}"
+fi
 
 echo ""
 echo -e "${GREEN}Successfully synced to public repo!${NC}"

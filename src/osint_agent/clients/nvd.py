@@ -63,8 +63,72 @@ class NVDClient(BaseClient):
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=days)
 
+        base_params = {
+            "pubStartDate": start_date.strftime("%Y-%m-%dT00:00:00.000"),
+            "pubEndDate": end_date.strftime("%Y-%m-%dT23:59:59.999"),
+            "resultsPerPage": max_results,
+        }
+
+        # Determine which severity levels to fetch
+        # NVD API only allows one severity at a time, so we may need multiple calls
+        if cvss_min >= 9.0:
+            severities = ["CRITICAL"]
+        else:
+            # Fetch both HIGH (8.0-8.9) and CRITICAL (9.0+) for cvss_min < 9.0
+            severities = ["HIGH", "CRITICAL"]
+
+        cves = []
+        seen_ids = set()
+
+        for severity in severities:
+            params = {**base_params, "cvssV3Severity": severity}
+            response = self.get("", params=params)
+
+            for vuln in response.get("vulnerabilities", []):
+                cve_data = vuln.get("cve", {})
+                cve_id = cve_data.get("id", "")
+
+                # Skip duplicates
+                if cve_id in seen_ids:
+                    continue
+
+                parsed = self._parse_cve(cve_data)
+
+                # Filter by exact CVSS score
+                cvss_score = parsed.get("cvss_v3_score", 0)
+                if cvss_score >= cvss_min:
+                    cves.append(parsed)
+                    seen_ids.add(cve_id)
+
+        # Sort by CVSS score descending
+        cves.sort(key=lambda x: x.get("cvss_v3_score", 0), reverse=True)
+
+        return cves[:max_results]
+
+    def search_by_keyword(
+        self,
+        keyword: str,
+        days: int = 30,
+        max_results: int = 20,
+    ) -> list[dict[str, Any]]:
+        """Search CVEs by keyword (product name, vendor, etc.).
+
+        This searches descriptions and CPE data, catching CVEs that may
+        not have NVD-assigned CVSS scores (only vendor/secondary scores).
+
+        Args:
+            keyword: Search term (e.g., product name)
+            days: Number of days to look back
+            max_results: Maximum number of results
+
+        Returns:
+            List of CVE details
+        """
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(days=days)
+
         params = {
-            "cvssV3Severity": "CRITICAL" if cvss_min >= 9.0 else "HIGH",
+            "keywordSearch": keyword,
             "pubStartDate": start_date.strftime("%Y-%m-%dT00:00:00.000"),
             "pubEndDate": end_date.strftime("%Y-%m-%dT23:59:59.999"),
             "resultsPerPage": max_results,
@@ -76,12 +140,10 @@ class NVDClient(BaseClient):
         for vuln in response.get("vulnerabilities", []):
             cve_data = vuln.get("cve", {})
             parsed = self._parse_cve(cve_data)
+            cves.append(parsed)
 
-            # Filter by exact CVSS score
-            cvss_score = parsed.get("cvss_v3_score", 0)
-            if cvss_score >= cvss_min:
-                cves.append(parsed)
-
+        # Sort by CVSS score descending
+        cves.sort(key=lambda x: x.get("cvss_v3_score", 0), reverse=True)
         return cves
 
     def _parse_cve(self, cve_data: dict) -> dict[str, Any]:
