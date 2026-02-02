@@ -271,7 +271,7 @@ class BaseClient:
                 get_usage_tracker().record_api_request(service)
 
                 # --- cache successful response ---
-                if cache_key is not None:
+                if cache_key is not None and self._response_cache is not None:
                     try:
                         self._response_cache.set(cache_key, data)
                     except Exception:
