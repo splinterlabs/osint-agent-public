@@ -8,6 +8,26 @@
 
 A threat intelligence assistant for [Claude Code](https://claude.ai/code) with CVE lookups, IOC extraction, structured investigations, and automated security monitoring.
 
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/splinterlabs/osint-agent-public.git
+cd osint-agent
+
+# Run one-command setup
+make init
+
+# Verify installation
+make status
+```
+
+**That's it!** Start using:
+- **Claude Code:** `claude` (then use `/intel`, `/investigate`, `/cve`, etc.)
+- **CLI:** `.venv/bin/python -m osint_agent.cli --help`
+
+See [QUICKSTART.md](QUICKSTART.md) for detailed setup guide or run `/install` in Claude Code for interactive wizard.
+
 ## Features
 
 - **Structured Investigations** - `/investigate` runs multi-source enrichment with compact console output and full JSONL logging; `/review` provides an independent judge layer
@@ -24,21 +44,6 @@ A threat intelligence assistant for [Claude Code](https://claude.ai/code) with C
 - **Username OSINT** - Search for usernames across social networks via Maigret
 - **Claude Code Integration** - Slash commands, hooks, MCP server, and per-investigation usage tracking
 
-## Quick Start
-
-```bash
-# Clone the repository
-git clone https://github.com/splinterlabs/osint-agent-public.git
-cd osint-agent
-
-# Run setup
-./setup.sh
-
-# Verify installation
-make verify
-```
-
-See [INSTALL.md](INSTALL.md) for detailed installation instructions.
 
 ## Usage
 
