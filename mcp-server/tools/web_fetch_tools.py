@@ -3,14 +3,20 @@
 This module provides an alternative to the built-in WebFetch tool that may be
 blocked by enterprise security policies. It uses the local requests library
 with rotating User-Agents to blend in with normal browser traffic.
+
+SECURITY: Includes SSRF protection to prevent abuse for internal network scanning,
+cloud metadata access, or localhost attacks.
 """
 
 from __future__ import annotations
 
+import ipaddress
 import logging
-import random
+import secrets
+import socket
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 # Add parent paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -45,14 +51,93 @@ USER_AGENTS = [
 ]
 
 
+# SSRF Protection - Blocklist of dangerous hosts
+SSRF_BLOCKLIST = {
+    # Loopback addresses
+    "localhost", "127.0.0.1", "::1", "0.0.0.0",
+    # Cloud metadata services
+    "169.254.169.254",  # AWS EC2 metadata
+    "metadata.google.internal",  # GCP metadata
+    "fd00:ec2::254",  # AWS IMDSv2 IPv6
+    # Kubernetes
+    "kubernetes.default.svc",
+    "kubernetes.default",
+}
+
+
+def is_safe_url(url: str) -> tuple[bool, str]:
+    """Validate URL against SSRF attacks.
+
+    Blocks:
+    - Private/internal IP ranges (RFC 1918)
+    - Loopback addresses
+    - Link-local addresses
+    - Cloud metadata services
+    - Reserved IP ranges
+
+    Args:
+        url: URL to validate
+
+    Returns:
+        Tuple of (is_safe, error_message)
+    """
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+
+        if not hostname:
+            return (False, "Invalid URL: no hostname")
+
+        # Check blocklist
+        if hostname.lower() in SSRF_BLOCKLIST:
+            return (False, f"Blocked: {hostname} is not allowed (security policy)")
+
+        # Resolve hostname to IP
+        try:
+            ip_str = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(ip_str)
+        except (socket.gaierror, ValueError) as e:
+            return (False, f"Failed to resolve hostname: {hostname}")
+
+        # Block private IP ranges (RFC 1918)
+        if ip.is_private:
+            return (False, f"Blocked: {ip} is a private IP address")
+
+        # Block loopback
+        if ip.is_loopback:
+            return (False, f"Blocked: {ip} is a loopback address")
+
+        # Block link-local
+        if ip.is_link_local:
+            return (False, f"Blocked: {ip} is a link-local address")
+
+        # Block multicast
+        if ip.is_multicast:
+            return (False, f"Blocked: {ip} is a multicast address")
+
+        # Block reserved
+        if ip.is_reserved:
+            return (False, f"Blocked: {ip} is a reserved address")
+
+        # Explicit check for cloud metadata service
+        if str(ip) == "169.254.169.254":
+            return (False, "Blocked: AWS/GCP metadata service access denied")
+
+        return (True, "")
+
+    except Exception as e:
+        logger.exception("URL validation error")
+        return (False, f"URL validation error: {e}")
+
+
 def get_realistic_headers() -> dict[str, str]:
-    """Generate realistic browser headers with rotating User-Agent.
+    """Generate realistic browser headers with cryptographically secure UA rotation.
 
     Returns:
         Dictionary of HTTP headers that mimic a real browser
     """
     return {
-        "User-Agent": random.choice(USER_AGENTS),
+        "User-Agent": secrets.choice(USER_AGENTS),  # Cryptographically secure random
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
         "Accept-Encoding": "gzip, deflate, br",
@@ -81,8 +166,10 @@ def register_tools(mcp):
         Uses rotating User-Agents that mimic real browsers (Chrome, Firefox, Safari)
         and includes realistic HTTP headers to avoid detection as an automated tool.
 
+        SECURITY: Includes SSRF protection - blocks private IPs, loopback, and cloud metadata.
+
         Args:
-            url: URL to fetch (must start with http:// or https://)
+            url: URL to fetch (must start with http:// or https://, public IPs only)
             extract_text: If True, extract readable text from HTML (default: True)
             timeout: Request timeout in seconds (default: 30)
             verify_ssl: If False, skip SSL certificate verification (default: True)
@@ -104,9 +191,15 @@ def register_tools(mcp):
             if not verify_ssl:
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-            # Validate URL
+            # Validate URL format
             if not url.startswith(("http://", "https://")):
                 return f"Error: URL must start with http:// or https://"
+
+            # SSRF Protection
+            is_safe, error_msg = is_safe_url(url)
+            if not is_safe:
+                logger.warning(f"SSRF attempt blocked: {url} - {error_msg}")
+                return f"Error: {error_msg}"
 
             # Fetch with realistic headers
             headers = get_realistic_headers()
@@ -165,8 +258,10 @@ def register_tools(mcp):
         Specialized tool for fetching JSON APIs. Uses the same realistic browser
         headers as local_web_fetch but with JSON-specific Accept headers.
 
+        SECURITY: Includes SSRF protection - blocks private IPs, loopback, and cloud metadata.
+
         Args:
-            url: API endpoint URL (must start with http:// or https://)
+            url: API endpoint URL (must start with http:// or https://, public IPs only)
             timeout: Request timeout in seconds (default: 30)
             verify_ssl: If False, skip SSL certificate verification (default: True)
 
@@ -185,9 +280,15 @@ def register_tools(mcp):
             if not verify_ssl:
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-            # Validate URL
+            # Validate URL format
             if not url.startswith(("http://", "https://")):
                 return f"Error: URL must start with http:// or https://"
+
+            # SSRF Protection
+            is_safe, error_msg = is_safe_url(url)
+            if not is_safe:
+                logger.warning(f"SSRF attempt blocked: {url} - {error_msg}")
+                return f"Error: {error_msg}"
 
             # Fetch with realistic headers but JSON Accept
             headers = get_realistic_headers()
@@ -224,8 +325,10 @@ def register_tools(mcp):
         Use this for downloading files, images, or any non-text content.
         Returns base64-encoded data for binary files.
 
+        SECURITY: Includes SSRF protection - blocks private IPs, loopback, and cloud metadata.
+
         Args:
-            url: URL to fetch (must start with http:// or https://)
+            url: URL to fetch (must start with http:// or https://, public IPs only)
             timeout: Request timeout in seconds (default: 30)
             verify_ssl: If False, skip SSL certificate verification (default: True)
 
@@ -241,9 +344,15 @@ def register_tools(mcp):
             if not verify_ssl:
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-            # Validate URL
+            # Validate URL format
             if not url.startswith(("http://", "https://")):
                 return f"Error: URL must start with http:// or https://"
+
+            # SSRF Protection
+            is_safe, error_msg = is_safe_url(url)
+            if not is_safe:
+                logger.warning(f"SSRF attempt blocked: {url} - {error_msg}")
+                return f"Error: {error_msg}"
 
             # Fetch with realistic headers
             headers = get_realistic_headers()

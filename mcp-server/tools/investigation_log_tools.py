@@ -146,14 +146,37 @@ def register_tools(mcp: FastMCP) -> None:
         data that was persisted during the investigation.
 
         Args:
-            log_file: Optional explicit path to a log file.  If omitted,
-                reads from the current investigation's log.
+            log_file: Optional log filename (not path). Must exist in logs/investigations/.
+                Path traversal attempts are blocked for security.
 
         Returns:
             JSON string with all log entries.
         """
+        # Define safe log directory (absolute path)
+        from pathlib import Path
+        LOGS_DIR = (Path(__file__).parent.parent.parent / "data" / "logs" / "investigations").resolve()
+
         if log_file:
-            path = Path(log_file)
+            # Security: Extract only filename component to prevent path traversal
+            safe_filename = Path(log_file).name
+
+            # Reject if input contains path separators or traversal attempts
+            if "/" in log_file or "\\" in log_file or ".." in log_file:
+                logger.warning(f"Path traversal attempt blocked: {log_file}")
+                return json.dumps({"error": "Invalid log_file: path traversal detected"})
+
+            # Construct path within safe directory
+            path = LOGS_DIR / safe_filename
+
+            # Verify resolved path is still within LOGS_DIR (defense in depth)
+            try:
+                resolved_path = path.resolve()
+                resolved_path.relative_to(LOGS_DIR)
+            except ValueError:
+                logger.warning(f"Path escape attempt blocked: {log_file}")
+                return json.dumps({"error": "Invalid log_file: must be within investigations directory"})
+
+            path = resolved_path
         else:
             cur = get_current_logger()
             if cur is None:
@@ -161,17 +184,26 @@ def register_tools(mcp: FastMCP) -> None:
             path = cur.path
 
         if not path.exists():
-            return json.dumps({"error": f"Log file not found: {path}"})
+            return json.dumps({"error": f"Log file not found: {path.name}"})
 
         entries = []
-        with open(path, "r", encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if line:
-                    entries.append(json.loads(line))
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if line:
+                        try:
+                            entries.append(json.loads(line))
+                        except json.JSONDecodeError:
+                            # Skip malformed lines instead of failing entire read
+                            logger.warning(f"Skipping malformed line in {path.name}")
+                            continue
+        except (OSError, PermissionError) as e:
+            logger.error(f"Failed to read log file {path.name}: {e}")
+            return json.dumps({"error": "Failed to read log file"})
 
         return json.dumps({
-            "log_file": str(path),
+            "log_file": path.name,  # Only expose filename, not full path
             "entry_count": len(entries),
             "entries": entries,
         }, indent=2, default=str)
