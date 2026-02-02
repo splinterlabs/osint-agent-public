@@ -42,7 +42,7 @@ def get_api_key(key_name: str) -> Optional[str]:
     service_key = KEYS.get(key_name)
     if service_key:
         try:
-            value = keyring.get_password(SERVICE_NAME, service_key)
+            value: Optional[str] = keyring.get_password(SERVICE_NAME, service_key)
             if value:
                 return value
         except keyring.errors.KeyringError as e:

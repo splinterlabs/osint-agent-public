@@ -232,7 +232,8 @@ class FreshRSSClient(BaseClient):
             List of unread entry dicts
         """
         result = self.get_entries(feed_id=None, count=count, unread_only=True)
-        return result["entries"]
+        entries: list[dict[str, Any]] = result["entries"]
+        return entries
 
     def mark_read(self, entry_ids: list[str]) -> bool:
         """Mark entries as read.
@@ -311,7 +312,7 @@ class FreshRSSClient(BaseClient):
                         break
             return filtered
 
-    def _parse_entry(self, item: dict) -> dict[str, Any]:
+    def _parse_entry(self, item: dict[str, Any]) -> dict[str, Any]:
         """Parse a raw entry item into standardized format.
 
         Args:

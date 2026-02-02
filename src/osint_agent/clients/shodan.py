@@ -43,7 +43,7 @@ class ShodanClient(BaseClient):
         """Get headers for Shodan API requests."""
         return {}
 
-    def _add_key(self, params: Optional[dict] = None) -> dict:
+    def _add_key(self, params: Optional[dict[str, Any]] = None) -> dict[str, Any]:
         """Add API key to request parameters."""
         params = params or {}
         params["key"] = self.api_key
@@ -79,7 +79,7 @@ class ShodanClient(BaseClient):
         result = self.get(f"/shodan/host/{ip}", params=params)
         return self._parse_host(result)
 
-    def _parse_host(self, data: dict) -> dict[str, Any]:
+    def _parse_host(self, data: dict[str, Any]) -> dict[str, Any]:
         """Parse host response into standardized format."""
         # Extract vulnerabilities from service data
         vulns = set()
@@ -195,7 +195,8 @@ class ShodanClient(BaseClient):
             Dictionary mapping hostnames to IP addresses
         """
         params = self._add_key({"hostnames": ",".join(hostnames[:100])})
-        return self.get("/dns/resolve", params=params)
+        result: dict[str, Optional[str]] = self.get("/dns/resolve", params=params)
+        return result
 
     def reverse(self, ips: list[str]) -> dict[str, list[str]]:
         """Reverse DNS lookup for IP addresses.
@@ -207,7 +208,8 @@ class ShodanClient(BaseClient):
             Dictionary mapping IPs to lists of hostnames
         """
         params = self._add_key({"ips": ",".join(ips[:100])})
-        return self.get("/dns/reverse", params=params)
+        result: dict[str, list[str]] = self.get("/dns/reverse", params=params)
+        return result
 
     def domain(self, domain: str) -> dict[str, Any]:
         """Get DNS information for a domain.
@@ -272,7 +274,8 @@ class ShodanClient(BaseClient):
             API plan details including credits remaining
         """
         params = self._add_key()
-        return self.get("/api-info", params=params)
+        result: dict[str, Any] = self.get("/api-info", params=params)
+        return result
 
     def vulnerabilities(self, cve_id: str) -> dict[str, Any]:
         """Get detailed vulnerability information.
