@@ -15,17 +15,33 @@ A threat intelligence assistant for Claude Code with CVE lookups, IOC extraction
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-## Quick Install
+## Quick Install (< 5 Minutes)
 
 ```bash
-git clone <repository-url> osint-agent
+# Clone the repository
+git clone https://github.com/splinterlabs/osint-agent-public.git
 cd osint-agent
-./setup.sh
+
+# One-command setup
+make init
 ```
 
-For MCP server support:
+**What `make init` does:**
+1. ✅ Verifies Python 3.11+ and dependencies
+2. ✅ Creates virtual environment with uv
+3. ✅ Installs OSINT Agent and all dependencies
+4. ✅ Creates configuration files from examples
+5. ✅ Initializes databases (IOCs and rate limits)
+6. ✅ Creates required directories (data/, reports/, logs/)
+7. ✅ Runs validation checks
+
+**Total time:** 2-3 minutes
+
+### Verify Installation
+
 ```bash
-./setup.sh --with-mcp
+make validate  # Full validation with detailed log
+make status    # Quick status summary
 ```
 
 ## Manual Installation
@@ -183,33 +199,112 @@ python -c "import osint_agent; print('OK')"
 
 ## Troubleshooting
 
+### Python Version Error
+
+**Problem:** `❌ Python 3.11+ required. You have: Python 3.10.x`
+
+**Solution:** Install Python 3.11 or higher:
+```bash
+# macOS (via Homebrew)
+brew install python@3.11
+
+# Ubuntu/Debian
+sudo apt install python3.11
+
+# Then retry
+make init
+```
+
+### Virtual Environment Issues
+
+**Problem:** `❌ Virtual environment missing`
+
+**Solution:**
+```bash
+make setup-venv
+make validate
+```
+
+### Database Not Initialized
+
+**Problem:** `❌ IOC database missing`
+
+**Solution:**
+```bash
+make init-db
+make validate
+```
+
 ### "Module not found" errors
 
-Ensure you installed in editable mode:
+**Problem:** Import errors when running CLI
+
+**Solution:** Ensure you installed in editable mode:
 ```bash
 uv pip install -e .
+# or
+make install
 ```
 
 ### Hook errors in Claude Code
 
-Check hook logs:
+**Problem:** Errors in Claude Code hooks
+
+**Solution:** Check hook logs:
 ```bash
 cat .claude/data/logs/alerts.jsonl
 ```
 
-### Rate limiting issues
+### API Key Errors
 
-The system enforces rate limits per domain. If blocked:
+**Problem:** Rate limits or "API key not found" errors
+
+**Solution:** API keys are optional. Without them, you'll use public access with lower rate limits. To add keys:
+```bash
+.venv/bin/python -m osint_agent.cli keys set NVD_API_KEY
+# Enter your key when prompted
+```
+
+### Rate Limiting Issues
+
+**Problem:** "Rate limit exceeded" errors
+
+**Solution:** The system enforces rate limits per domain. If blocked, check logs:
 ```bash
 cat data/logs/blocked_requests.jsonl
 ```
 
-### Database locked
+Wait for rate limit reset or add API keys for higher limits.
 
-SQLite concurrent access issue. Restart Claude Code or:
+### Database Locked
+
+**Problem:** SQLite concurrent access issue
+
+**Solution:** Restart Claude Code or recreate the database:
 ```bash
-rm data/rate_limits.db  # Will be recreated
+rm data/rate_limits.db  # Will be recreated automatically
 ```
+
+### Permission Denied Errors
+
+**Problem:** Permission errors when creating directories or databases
+
+**Solution:** Ensure you have write permissions in the project directory:
+```bash
+# Check ownership
+ls -la
+
+# If needed, fix permissions
+chmod -R u+w .
+```
+
+### SSL Certificate Errors
+
+**Problem:** SSL verification failures on corporate networks
+
+**Solution:** If you're behind Zscaler or similar SSL inspection:
+
+See `docs/archive/SSL_FIX_SUMMARY.md` for details on configuring SSL certificates.
 
 ## Updating
 
