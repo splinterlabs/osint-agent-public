@@ -1,5 +1,7 @@
 """Unit tests for FreshRSS client."""
 
+from unittest.mock import patch
+
 import pytest
 import responses
 
@@ -11,7 +13,10 @@ class TestFreshRSSAuthentication:
     """Tests for FreshRSS authentication."""
 
     @responses.activate
-    def test_authenticate_success(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_authenticate_success(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
+
         responses.add(
             responses.POST,
             "https://rss.example.com/accounts/ClientLogin",
@@ -28,11 +33,12 @@ class TestFreshRSSAuthentication:
 
         assert result is True
         assert client._auth_token == "test_auth_token"
-        # Password cleared from memory after successful auth
-        assert client._password is None
 
     @responses.activate
-    def test_authenticate_failure(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_authenticate_failure(self, mock_get_password):
+        mock_get_password.return_value = "wrongpass"
+
         responses.add(
             responses.POST,
             "https://rss.example.com/accounts/ClientLogin",
@@ -49,7 +55,10 @@ class TestFreshRSSAuthentication:
             client.authenticate()
 
     @responses.activate
-    def test_authenticate_missing_token(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_authenticate_missing_token(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
+
         responses.add(
             responses.POST,
             "https://rss.example.com/accounts/ClientLogin",
@@ -81,7 +90,10 @@ class TestFreshRSSSubscriptions:
     """Tests for FreshRSS subscription listing."""
 
     @responses.activate
-    def test_get_subscriptions(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_get_subscriptions(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
+
         # Auth endpoint
         responses.add(
             responses.POST,
@@ -134,7 +146,9 @@ class TestFreshRSSEntries:
     """Tests for FreshRSS entry fetching."""
 
     @responses.activate
-    def test_get_entries_all_feeds(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_get_entries_all_feeds(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
         # Auth endpoint
         responses.add(
             responses.POST,
@@ -181,7 +195,9 @@ class TestFreshRSSEntries:
         assert result["continuation"] == "next_page_token"
 
     @responses.activate
-    def test_get_entries_specific_feed(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_get_entries_specific_feed(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
         # Auth endpoint
         responses.add(
             responses.POST,
@@ -209,7 +225,9 @@ class TestFreshRSSEntries:
         assert result["continuation"] is None
 
     @responses.activate
-    def test_get_unread_entries(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_get_unread_entries(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
         # Auth endpoint
         responses.add(
             responses.POST,
@@ -253,7 +271,9 @@ class TestFreshRSSMarkRead:
     """Tests for marking entries as read."""
 
     @responses.activate
-    def test_mark_read_success(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_mark_read_success(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
         # Auth endpoint
         responses.add(
             responses.POST,
@@ -296,7 +316,9 @@ class TestFreshRSSSearch:
     """Tests for FreshRSS search functionality."""
 
     @responses.activate
-    def test_search_server_side(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_search_server_side(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
         # Auth endpoint
         responses.add(
             responses.POST,
@@ -340,7 +362,9 @@ class TestFreshRSSEntryParsing:
     """Tests for entry parsing logic."""
 
     @responses.activate
-    def test_parse_entry_with_content_field(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_parse_entry_with_content_field(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
         # Auth endpoint
         responses.add(
             responses.POST,
@@ -387,7 +411,9 @@ class TestFreshRSSEntryParsing:
         assert "alert" in entry["categories"]
 
     @responses.activate
-    def test_parse_entry_with_missing_fields(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_parse_entry_with_missing_fields(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
         # Auth endpoint
         responses.add(
             responses.POST,
@@ -433,7 +459,9 @@ class TestFreshRSSHeaders:
     """Tests for HTTP header handling."""
 
     @responses.activate
-    def test_auth_header_included(self):
+    @patch("osint_agent.clients.freshrss.FreshRSSClient._get_password")
+    def test_auth_header_included(self, mock_get_password):
+        mock_get_password.return_value = "testpass"
         # Auth endpoint
         responses.add(
             responses.POST,
