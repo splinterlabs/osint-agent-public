@@ -1,4 +1,6 @@
-# OSINT Agent - Project Instructions
+# OSINT Agent - AI Agent Instructions
+
+Instructions for AI agents (Claude Code, Cursor, Aider, etc.) working with this project.
 
 ## Report & Export Output
 
