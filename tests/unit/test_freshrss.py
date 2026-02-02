@@ -3,8 +3,8 @@
 import pytest
 import responses
 
-from osint_agent.clients.freshrss import FreshRSSClient
 from osint_agent.clients.base import APIError
+from osint_agent.clients.freshrss import FreshRSSClient
 
 
 class TestFreshRSSAuthentication:
@@ -100,9 +100,7 @@ class TestFreshRSSSubscriptions:
                         "url": "https://security.example.com/feed",
                         "htmlUrl": "https://security.example.com",
                         "iconUrl": "https://security.example.com/icon.png",
-                        "categories": [
-                            {"id": "cat/1", "label": "Security"}
-                        ],
+                        "categories": [{"id": "cat/1", "label": "Security"}],
                     },
                     {
                         "id": "feed/2",

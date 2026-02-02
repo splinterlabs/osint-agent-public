@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urljoin
 
 import requests
@@ -32,7 +32,7 @@ class FreshRSSClient(BaseClient):
         base_url: str,
         username: str,
         password: str,
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
     ):
         """Initialize FreshRSS client.
 
@@ -46,7 +46,7 @@ class FreshRSSClient(BaseClient):
         self.BASE_URL = self.base_url
         self.username = username
         self.password = password
-        self._auth_token: Optional[str] = None
+        self._auth_token: str | None = None
         super().__init__(timeout=timeout)
 
     def _get_headers(self) -> dict[str, str]:
@@ -114,26 +114,28 @@ class FreshRSSClient(BaseClient):
 
         subscriptions = []
         for sub in response.get("subscriptions", []):
-            subscriptions.append({
-                "id": sub.get("id", ""),
-                "title": sub.get("title", ""),
-                "url": sub.get("url", ""),
-                "html_url": sub.get("htmlUrl", ""),
-                "icon_url": sub.get("iconUrl", ""),
-                "categories": [
-                    {"id": cat.get("id", ""), "label": cat.get("label", "")}
-                    for cat in sub.get("categories", [])
-                ],
-            })
+            subscriptions.append(
+                {
+                    "id": sub.get("id", ""),
+                    "title": sub.get("title", ""),
+                    "url": sub.get("url", ""),
+                    "html_url": sub.get("htmlUrl", ""),
+                    "icon_url": sub.get("iconUrl", ""),
+                    "categories": [
+                        {"id": cat.get("id", ""), "label": cat.get("label", "")}
+                        for cat in sub.get("categories", [])
+                    ],
+                }
+            )
 
         return subscriptions
 
     def get_entries(
         self,
-        feed_id: Optional[str] = None,
+        feed_id: str | None = None,
         count: int = 20,
         unread_only: bool = False,
-        continuation: Optional[str] = None,
+        continuation: str | None = None,
     ) -> dict[str, Any]:
         """Fetch entries from a feed or all feeds.
 
@@ -149,10 +151,7 @@ class FreshRSSClient(BaseClient):
         self._ensure_authenticated()
 
         # Determine stream ID
-        if feed_id:
-            stream_id = feed_id
-        else:
-            stream_id = "user/-/state/com.google/reading-list"
+        stream_id = feed_id or "user/-/state/com.google/reading-list"
 
         params: dict[str, Any] = {
             "output": "json",
@@ -167,6 +166,7 @@ class FreshRSSClient(BaseClient):
 
         # URL encode the stream ID in the path
         from urllib.parse import quote
+
         endpoint = f"/reader/api/0/stream/contents/{quote(stream_id, safe='')}"
 
         response = self.get(endpoint, params=params)
@@ -242,7 +242,8 @@ class FreshRSSClient(BaseClient):
 
         # FreshRSS uses a special search stream
         from urllib.parse import quote
-        search_stream = f"user/-/state/com.google/label/{quote(query, safe='')}"
+
+        f"user/-/state/com.google/label/{quote(query, safe='')}"
 
         # Try the standard search endpoint first
         params = {
@@ -263,8 +264,10 @@ class FreshRSSClient(BaseClient):
             query_lower = query.lower()
             filtered = []
             for entry in all_entries["entries"]:
-                if (query_lower in entry.get("title", "").lower() or
-                    query_lower in entry.get("summary", "").lower()):
+                if (
+                    query_lower in entry.get("title", "").lower()
+                    or query_lower in entry.get("summary", "").lower()
+                ):
                     filtered.append(entry)
                     if len(filtered) >= count:
                         break
@@ -309,5 +312,7 @@ class FreshRSSClient(BaseClient):
             "summary": summary,
             "feed_id": origin.get("streamId", ""),
             "feed_title": origin.get("title", ""),
-            "categories": [cat.get("label", "") for cat in item.get("categories", []) if isinstance(cat, dict)],
+            "categories": [
+                cat.get("label", "") for cat in item.get("categories", []) if isinstance(cat, dict)
+            ],
         }

@@ -10,12 +10,11 @@ Reference: https://docs.opencti.io/latest/usage/data-model/
 
 from __future__ import annotations
 
-import hashlib
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # STIX 2.1 namespace for deterministic UUIDs
 STIX_NAMESPACE = uuid.UUID("00abedb4-aa42-466c-9c01-fed23315a9b7")
@@ -31,7 +30,7 @@ def generate_stix_id(type_name: str, value: str) -> str:
 
 def now_iso() -> str:
     """Get current UTC timestamp in ISO format."""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 class STIXBundle:
@@ -63,8 +62,9 @@ class STIXBundle:
 
     def save(self, path: str | Path) -> None:
         """Save bundle to file (atomic write)."""
-        import tempfile
         import os
+        import tempfile
+
         target = Path(path)
         fd, tmp_path = tempfile.mkstemp(
             dir=target.parent,
@@ -85,7 +85,7 @@ class STIXBundle:
 # =============================================================================
 
 
-def create_ipv4_observable(ip: str, labels: Optional[list[str]] = None) -> dict[str, Any]:
+def create_ipv4_observable(ip: str, labels: list[str] | None = None) -> dict[str, Any]:
     """Create STIX IPv4 Address observable."""
     return {
         "type": "ipv4-addr",
@@ -96,7 +96,7 @@ def create_ipv4_observable(ip: str, labels: Optional[list[str]] = None) -> dict[
     }
 
 
-def create_ipv6_observable(ip: str, labels: Optional[list[str]] = None) -> dict[str, Any]:
+def create_ipv6_observable(ip: str, labels: list[str] | None = None) -> dict[str, Any]:
     """Create STIX IPv6 Address observable."""
     return {
         "type": "ipv6-addr",
@@ -107,9 +107,7 @@ def create_ipv6_observable(ip: str, labels: Optional[list[str]] = None) -> dict[
     }
 
 
-def create_domain_observable(
-    domain: str, labels: Optional[list[str]] = None
-) -> dict[str, Any]:
+def create_domain_observable(domain: str, labels: list[str] | None = None) -> dict[str, Any]:
     """Create STIX Domain Name observable."""
     return {
         "type": "domain-name",
@@ -120,7 +118,7 @@ def create_domain_observable(
     }
 
 
-def create_url_observable(url: str, labels: Optional[list[str]] = None) -> dict[str, Any]:
+def create_url_observable(url: str, labels: list[str] | None = None) -> dict[str, Any]:
     """Create STIX URL observable."""
     return {
         "type": "url",
@@ -134,7 +132,7 @@ def create_url_observable(url: str, labels: Optional[list[str]] = None) -> dict[
 def create_file_hash_observable(
     hash_value: str,
     hash_type: str,  # "MD5", "SHA-1", "SHA-256"
-    labels: Optional[list[str]] = None,
+    labels: list[str] | None = None,
 ) -> dict[str, Any]:
     """Create STIX File observable with hash."""
     # Normalize hash type to STIX format
@@ -155,9 +153,7 @@ def create_file_hash_observable(
     }
 
 
-def create_email_observable(
-    email: str, labels: Optional[list[str]] = None
-) -> dict[str, Any]:
+def create_email_observable(email: str, labels: list[str] | None = None) -> dict[str, Any]:
     """Create STIX Email Address observable."""
     return {
         "type": "email-addr",
@@ -177,8 +173,8 @@ def create_vulnerability(
     cve_id: str,
     name: str,
     description: str,
-    cvss_score: Optional[float] = None,
-    external_references: Optional[list[dict]] = None,
+    cvss_score: float | None = None,
+    external_references: list[dict] | None = None,
 ) -> dict[str, Any]:
     """Create STIX Vulnerability object for CVE."""
     vuln = {
@@ -210,11 +206,11 @@ def create_vulnerability(
 def create_indicator(
     pattern: str,
     pattern_type: str = "stix",
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    labels: Optional[list[str]] = None,
-    valid_from: Optional[str] = None,
-    confidence: Optional[int] = None,
+    name: str | None = None,
+    description: str | None = None,
+    labels: list[str] | None = None,
+    valid_from: str | None = None,
+    confidence: int | None = None,
 ) -> dict[str, Any]:
     """Create STIX Indicator object.
 
@@ -253,12 +249,12 @@ def create_indicator(
 def create_report(
     name: str,
     description: str,
-    published: Optional[str] = None,
-    report_types: Optional[list[str]] = None,
-    object_refs: Optional[list[str]] = None,
-    labels: Optional[list[str]] = None,
-    confidence: Optional[int] = None,
-    external_references: Optional[list[dict]] = None,
+    published: str | None = None,
+    report_types: list[str] | None = None,
+    object_refs: list[str] | None = None,
+    labels: list[str] | None = None,
+    confidence: int | None = None,
+    external_references: list[dict] | None = None,
 ) -> dict[str, Any]:
     """Create STIX Report object.
 
@@ -297,10 +293,10 @@ def create_report(
 
 def create_threat_actor(
     name: str,
-    description: Optional[str] = None,
-    aliases: Optional[list[str]] = None,
-    threat_actor_types: Optional[list[str]] = None,
-    labels: Optional[list[str]] = None,
+    description: str | None = None,
+    aliases: list[str] | None = None,
+    threat_actor_types: list[str] | None = None,
+    labels: list[str] | None = None,
 ) -> dict[str, Any]:
     """Create STIX Threat Actor object."""
     actor = {
@@ -326,10 +322,10 @@ def create_threat_actor(
 
 def create_malware(
     name: str,
-    description: Optional[str] = None,
-    malware_types: Optional[list[str]] = None,
+    description: str | None = None,
+    malware_types: list[str] | None = None,
     is_family: bool = True,
-    labels: Optional[list[str]] = None,
+    labels: list[str] | None = None,
 ) -> dict[str, Any]:
     """Create STIX Malware object."""
     malware = {
@@ -361,8 +357,8 @@ def create_relationship(
     source_ref: str,
     target_ref: str,
     relationship_type: str,
-    description: Optional[str] = None,
-    confidence: Optional[int] = None,
+    description: str | None = None,
+    confidence: int | None = None,
 ) -> dict[str, Any]:
     """Create STIX Relationship object.
 
@@ -414,7 +410,7 @@ def escape_stix_pattern_value(value: str) -> str:
 
 def iocs_to_stix_bundle(
     iocs: dict[str, list[str]],
-    labels: Optional[list[str]] = None,
+    labels: list[str] | None = None,
     create_indicators: bool = True,
 ) -> STIXBundle:
     """Convert extracted IOCs to a STIX bundle.

@@ -1,14 +1,12 @@
 """Unit tests for YARA and Sigma rule generation."""
 
-import pytest
-
 from osint_agent.rules import (
-    generate_yara_rule,
-    generate_sigma_rule,
-    generate_sigma_dns_rule,
-    generate_sigma_firewall_rule,
     _escape_yara_string,
     _generate_uuid_from_title,
+    generate_sigma_dns_rule,
+    generate_sigma_firewall_rule,
+    generate_sigma_rule,
+    generate_yara_rule,
 )
 
 

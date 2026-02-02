@@ -12,11 +12,12 @@ from __future__ import annotations
 import json
 import logging
 import threading
+from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import monotonic
-from typing import Any, Callable, Iterable, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -44,7 +45,7 @@ def _load_parallelism_config() -> dict[str, Any]:
                 with open(config_path) as f:
                     data = json.load(f)
                     return data.get("parallelism", {})
-            except (json.JSONDecodeError, IOError) as e:
+            except (OSError, json.JSONDecodeError) as e:
                 logger.warning(f"Failed to load parallelism config: {e}")
 
     return {}
@@ -135,9 +136,7 @@ def parallel_map(
     results: list[R | None] = [None] * len(items_list)
 
     with ThreadPoolExecutor(max_workers=metrics.workers) as executor:
-        future_to_idx = {
-            executor.submit(fn, item): idx for idx, item in enumerate(items_list)
-        }
+        future_to_idx = {executor.submit(fn, item): idx for idx, item in enumerate(items_list)}
 
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]

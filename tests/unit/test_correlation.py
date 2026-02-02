@@ -1,10 +1,8 @@
 """Unit tests for correlation engine."""
 
-import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from osint_agent.correlation import (
-    ClusterResult,
     CorrelationEngine,
     CorrelationResult,
 )
@@ -167,15 +165,27 @@ class TestIOCClustering:
 
     def test_cluster_by_source(self):
         engine = CorrelationEngine()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         iocs = [
-            {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
-             "timestamp": now.isoformat()},
-            {"type": "ipv4", "value": "192.0.2.2", "source": "report1",
-             "timestamp": (now + timedelta(minutes=5)).isoformat()},
-            {"type": "domain", "value": "evil.com", "source": "report1",
-             "timestamp": (now + timedelta(minutes=10)).isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "report1",
+                "timestamp": now.isoformat(),
+            },
+            {
+                "type": "ipv4",
+                "value": "192.0.2.2",
+                "source": "report1",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+            },
+            {
+                "type": "domain",
+                "value": "evil.com",
+                "source": "report1",
+                "timestamp": (now + timedelta(minutes=10)).isoformat(),
+            },
         ]
 
         clusters = engine.cluster_iocs(iocs, time_window_minutes=60, min_cluster_size=2)
@@ -186,16 +196,28 @@ class TestIOCClustering:
 
     def test_cluster_time_window(self):
         engine = CorrelationEngine()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         iocs = [
-            {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
-             "timestamp": now.isoformat()},
-            {"type": "ipv4", "value": "192.0.2.2", "source": "report1",
-             "timestamp": (now + timedelta(minutes=5)).isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "report1",
+                "timestamp": now.isoformat(),
+            },
+            {
+                "type": "ipv4",
+                "value": "192.0.2.2",
+                "source": "report1",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+            },
             # This one is outside the time window
-            {"type": "ipv4", "value": "192.0.2.3", "source": "report1",
-             "timestamp": (now + timedelta(hours=3)).isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.3",
+                "source": "report1",
+                "timestamp": (now + timedelta(hours=3)).isoformat(),
+            },
         ]
 
         clusters = engine.cluster_iocs(iocs, time_window_minutes=30, min_cluster_size=2)
@@ -205,11 +227,15 @@ class TestIOCClustering:
 
     def test_cluster_min_size(self):
         engine = CorrelationEngine()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         iocs = [
-            {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
-             "timestamp": now.isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "report1",
+                "timestamp": now.isoformat(),
+            },
         ]
 
         clusters = engine.cluster_iocs(iocs, min_cluster_size=2)
@@ -218,17 +244,33 @@ class TestIOCClustering:
 
     def test_cluster_multiple_sources(self):
         engine = CorrelationEngine()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         iocs = [
-            {"type": "ipv4", "value": "192.0.2.1", "source": "source1",
-             "timestamp": now.isoformat()},
-            {"type": "ipv4", "value": "192.0.2.2", "source": "source1",
-             "timestamp": (now + timedelta(minutes=5)).isoformat()},
-            {"type": "domain", "value": "evil1.com", "source": "source2",
-             "timestamp": now.isoformat()},
-            {"type": "domain", "value": "evil2.com", "source": "source2",
-             "timestamp": (now + timedelta(minutes=5)).isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "source1",
+                "timestamp": now.isoformat(),
+            },
+            {
+                "type": "ipv4",
+                "value": "192.0.2.2",
+                "source": "source1",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+            },
+            {
+                "type": "domain",
+                "value": "evil1.com",
+                "source": "source2",
+                "timestamp": now.isoformat(),
+            },
+            {
+                "type": "domain",
+                "value": "evil2.com",
+                "source": "source2",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+            },
         ]
 
         clusters = engine.cluster_iocs(iocs, min_cluster_size=2)
@@ -237,22 +279,34 @@ class TestIOCClustering:
 
     def test_cluster_deduplication(self):
         engine = CorrelationEngine()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         iocs = [
-            {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
-             "timestamp": now.isoformat()},
-            {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
-             "timestamp": (now + timedelta(minutes=5)).isoformat()},  # Duplicate
-            {"type": "ipv4", "value": "192.0.2.2", "source": "report1",
-             "timestamp": (now + timedelta(minutes=10)).isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "report1",
+                "timestamp": now.isoformat(),
+            },
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "report1",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+            },  # Duplicate
+            {
+                "type": "ipv4",
+                "value": "192.0.2.2",
+                "source": "report1",
+                "timestamp": (now + timedelta(minutes=10)).isoformat(),
+            },
         ]
 
         clusters = engine.cluster_iocs(iocs, min_cluster_size=2)
 
         # Should have 2 unique IOCs in cluster
         assert len(clusters) == 1
-        unique_values = set(m["value"] for m in clusters[0].members)
+        unique_values = {m["value"] for m in clusters[0].members}
         assert len(unique_values) == 2
 
 

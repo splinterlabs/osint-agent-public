@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from .base import BaseClient
 
@@ -16,6 +16,7 @@ class AbuseCHClient(BaseClient):
         if self.api_key:
             headers["Auth-Key"] = self.api_key
         return headers
+
 
 # Maximum related URLs/items returned in list responses
 MAX_RELATED_ITEMS = 20
@@ -42,9 +43,7 @@ class URLhausClient(AbuseCHClient):
     CACHE_TTL_HOURS = 4
 
     def _should_cache(self, method, endpoint, params=None, json_data=None, form_data=None):
-        if "/recent" in endpoint:
-            return False
-        return True
+        return "/recent" not in endpoint
 
     def lookup_url(self, url: str) -> dict[str, Any]:
         """Look up a URL in URLhaus.
@@ -197,9 +196,7 @@ class MalwareBazaarClient(AbuseCHClient):
     CACHE_TTL_HOURS = 4
 
     def _should_cache(self, method, endpoint, params=None, json_data=None, form_data=None):
-        if form_data and form_data.get("query") == "get_recent":
-            return False
-        return True
+        return not (form_data and form_data.get("query") == "get_recent")
 
     def lookup_hash(self, hash_value: str) -> dict[str, Any]:
         """Look up a malware sample by hash.
@@ -327,9 +324,7 @@ class ThreatFoxClient(AbuseCHClient):
     CACHE_TTL_HOURS = 4
 
     def _should_cache(self, method, endpoint, params=None, json_data=None, form_data=None):
-        if json_data and json_data.get("query") == "get_iocs":
-            return False
-        return True
+        return not (json_data and json_data.get("query") == "get_iocs")
 
     def lookup_ioc(self, ioc: str) -> dict[str, Any]:
         """Look up an IOC in ThreatFox.

@@ -9,14 +9,16 @@ import json
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .base import BaseClient, ProxyConfig
 
 logger = logging.getLogger(__name__)
 
 # ATT&CK STIX repository URLs
-ATTACK_STIX_URL = "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"
+ATTACK_STIX_URL = (
+    "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"
+)
 
 
 class ATTACKClient(BaseClient):
@@ -31,9 +33,9 @@ class ATTACKClient(BaseClient):
 
     def __init__(
         self,
-        cache_dir: Optional[Path] = None,
-        timeout: Optional[int] = None,
-        proxy: Optional[ProxyConfig] = None,
+        cache_dir: Path | None = None,
+        timeout: int | None = None,
+        proxy: ProxyConfig | None = None,
     ):
         """Initialize ATT&CK client.
 
@@ -45,7 +47,7 @@ class ATTACKClient(BaseClient):
         super().__init__(timeout=timeout or 60, proxy=proxy)
         self.cache_dir = cache_dir or Path("data/cache/attack")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self._data: Optional[dict] = None
+        self._data: dict | None = None
         self._techniques: dict[str, dict] = {}
         self._tactics: dict[str, dict] = {}
         self._groups: dict[str, dict] = {}
@@ -78,7 +80,7 @@ class ATTACKClient(BaseClient):
                     self._data = json.load(f)
                     self._index_data()
                     return self._data
-            except (json.JSONDecodeError, IOError) as e:
+            except (OSError, json.JSONDecodeError) as e:
                 logger.warning(f"Cache read failed: {e}")
 
         # Fetch fresh data
@@ -95,7 +97,7 @@ class ATTACKClient(BaseClient):
         try:
             with open(cache_path, "w") as f:
                 json.dump(self._data, f)
-        except IOError as e:
+        except OSError as e:
             logger.warning(f"Cache write failed: {e}")
 
         self._index_data()
@@ -148,7 +150,7 @@ class ATTACKClient(BaseClient):
                 name = obj.get("name", "").lower()
                 self._software[name] = obj
 
-    def get_technique(self, technique_id: str) -> Optional[dict[str, Any]]:
+    def get_technique(self, technique_id: str) -> dict[str, Any] | None:
         """Get technique by ATT&CK ID or name.
 
         Args:
@@ -158,9 +160,7 @@ class ATTACKClient(BaseClient):
             Technique details or None if not found
         """
         self._load_data()
-        technique = self._techniques.get(technique_id) or self._techniques.get(
-            technique_id.lower()
-        )
+        technique = self._techniques.get(technique_id) or self._techniques.get(technique_id.lower())
 
         if not technique:
             return None
@@ -200,7 +200,7 @@ class ATTACKClient(BaseClient):
             "permissions_required": technique.get("x_mitre_permissions_required", []),
         }
 
-    def get_tactic(self, tactic_id: str) -> Optional[dict[str, Any]]:
+    def get_tactic(self, tactic_id: str) -> dict[str, Any] | None:
         """Get tactic by ATT&CK ID or shortname.
 
         Args:
@@ -231,7 +231,7 @@ class ATTACKClient(BaseClient):
             "url": url,
         }
 
-    def get_group(self, group_id: str) -> Optional[dict[str, Any]]:
+    def get_group(self, group_id: str) -> dict[str, Any] | None:
         """Get threat group by ATT&CK ID, name, or alias.
 
         Args:
@@ -262,7 +262,7 @@ class ATTACKClient(BaseClient):
             "url": url,
         }
 
-    def get_software(self, software_id: str) -> Optional[dict[str, Any]]:
+    def get_software(self, software_id: str) -> dict[str, Any] | None:
         """Get malware or tool by ATT&CK ID or name.
 
         Args:
@@ -272,9 +272,7 @@ class ATTACKClient(BaseClient):
             Software details or None if not found
         """
         self._load_data()
-        software = self._software.get(software_id) or self._software.get(
-            software_id.lower()
-        )
+        software = self._software.get(software_id) or self._software.get(software_id.lower())
 
         if not software:
             return None
@@ -300,8 +298,8 @@ class ATTACKClient(BaseClient):
     def search_techniques(
         self,
         query: str,
-        tactic: Optional[str] = None,
-        platform: Optional[str] = None,
+        tactic: str | None = None,
+        platform: str | None = None,
         limit: int = 20,
     ) -> list[dict[str, Any]]:
         """Search techniques by keyword.
@@ -417,9 +415,7 @@ class ATTACKClient(BaseClient):
 
         return results
 
-    def map_behavior_to_techniques(
-        self, behavior: str, limit: int = 5
-    ) -> list[dict[str, Any]]:
+    def map_behavior_to_techniques(self, behavior: str, limit: int = 5) -> list[dict[str, Any]]:
         """Map a behavior description to likely ATT&CK techniques.
 
         This is a simple keyword-based matching. For production use,

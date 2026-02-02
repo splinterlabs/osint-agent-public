@@ -17,9 +17,9 @@ import json
 import logging
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class ContextManager:
     def _save_tier(self, tier: str, data: dict[str, Any]) -> None:
         """Save a context tier to disk (atomic write)."""
         path = self._context_path(tier)
-        data["last_modified"] = datetime.now(timezone.utc).isoformat()
+        data["last_modified"] = datetime.now(UTC).isoformat()
 
         fd, tmp_path = tempfile.mkstemp(
             dir=self.context_dir,
@@ -82,8 +82,8 @@ class ContextManager:
         """Get default context for a tier."""
         base = {
             "tier": tier,
-            "created": datetime.now(timezone.utc).isoformat(),
-            "last_modified": datetime.now(timezone.utc).isoformat(),
+            "created": datetime.now(UTC).isoformat(),
+            "last_modified": datetime.now(UTC).isoformat(),
         }
 
         if tier == "strategic":
@@ -142,7 +142,7 @@ class ContextManager:
 
         return base
 
-    def get(self, tier: str, key: Optional[str] = None) -> Any:
+    def get(self, tier: str, key: str | None = None) -> Any:
         """Get context data.
 
         Args:
@@ -218,17 +218,15 @@ class ContextManager:
         return {
             "strategic": {
                 "objective_count": len(all_ctx["strategic"].get("objectives", [])),
-                "priority_threats": all_ctx["strategic"].get("threat_landscape", {}).get(
-                    "priority_threats", []
-                )[:5],
+                "priority_threats": all_ctx["strategic"]
+                .get("threat_landscape", {})
+                .get("priority_threats", [])[:5],
             },
             "operational": {
-                "investigation": all_ctx["operational"].get("investigation", {}).get(
-                    "name", ""
-                ),
-                "status": all_ctx["operational"].get("investigation", {}).get(
-                    "status", "not_started"
-                ),
+                "investigation": all_ctx["operational"].get("investigation", {}).get("name", ""),
+                "status": all_ctx["operational"]
+                .get("investigation", {})
+                .get("status", "not_started"),
             },
             "tactical": {
                 "priority_count": len(all_ctx["tactical"].get("priorities", [])),
@@ -237,9 +235,7 @@ class ContextManager:
                 "usage_stats": all_ctx["tactical"].get("usage_stats", {}),
             },
             "security": {
-                "classification": all_ctx["security"].get(
-                    "classification", "unclassified"
-                ),
+                "classification": all_ctx["security"].get("classification", "unclassified"),
             },
         }
 
@@ -256,7 +252,7 @@ class ContextManager:
         name: str,
         description: str = "",
         scope: str = "",
-        stakeholders: Optional[list[str]] = None,
+        stakeholders: list[str] | None = None,
     ) -> None:
         """Start a new investigation (resets operational and tactical).
 
@@ -277,7 +273,7 @@ class ContextManager:
                     "scope": scope,
                     "stakeholders": stakeholders or [],
                     "status": "in_progress",
-                    "started": datetime.now(timezone.utc).isoformat(),
+                    "started": datetime.now(UTC).isoformat(),
                 }
             },
         )
@@ -291,7 +287,7 @@ class ContextManager:
         value: str,
         confidence: float = 0.5,
         source: str = "",
-        tags: Optional[list[str]] = None,
+        tags: list[str] | None = None,
     ) -> None:
         """Add an IOC to tactical context.
 
@@ -308,7 +304,7 @@ class ContextManager:
             "confidence": confidence,
             "source": source,
             "tags": tags or [],
-            "added": datetime.now(timezone.utc).isoformat(),
+            "added": datetime.now(UTC).isoformat(),
         }
         self.append("tactical", "active_iocs", ioc)
 
@@ -317,7 +313,7 @@ class ContextManager:
         title: str,
         description: str,
         confidence: float = 0.5,
-        evidence: Optional[list[str]] = None,
+        evidence: list[str] | None = None,
     ) -> None:
         """Add a finding to tactical context.
 
@@ -332,6 +328,6 @@ class ContextManager:
             "description": description,
             "confidence": confidence,
             "evidence": evidence or [],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         self.append("tactical", "findings", finding)
