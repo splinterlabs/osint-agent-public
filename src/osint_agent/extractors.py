@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import atexit
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
@@ -14,7 +15,25 @@ EXTRACTION_TIMEOUT_SECONDS = 2
 MAX_CONTENT_LENGTH = 500_000  # 500KB max
 
 # Module-level executor to avoid per-call creation overhead
-_timeout_executor = ThreadPoolExecutor(max_workers=1)
+# Named thread for easier debugging
+_timeout_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ioc_timeout_")
+
+
+def _cleanup_executor() -> None:
+    """Shutdown executor on module unload.
+
+    SECURITY: Prevents thread exhaustion and resource leaks.
+    Registered with atexit to ensure cleanup on process termination.
+    """
+    try:
+        _timeout_executor.shutdown(wait=True, cancel_futures=True)
+        logger.debug("IOC timeout executor shutdown completed")
+    except Exception as e:
+        logger.warning(f"Error during executor shutdown: {e}")
+
+
+# Register cleanup handler
+atexit.register(_cleanup_executor)
 
 # Valid TLDs for domain validation (common + security-relevant)
 VALID_TLDS = {
