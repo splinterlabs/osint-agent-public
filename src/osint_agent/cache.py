@@ -6,9 +6,10 @@ import hashlib
 import json
 import os
 import tempfile
-from datetime import datetime, timedelta, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 
 def make_request_cache_key(
@@ -48,7 +49,7 @@ class ThreatContextCache:
         safe_key = "".join(c if c.isalnum() or c in "-_" else "_" for c in key)
         return self.cache_dir / f"{safe_key}.json"
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Retrieve cached value if it exists."""
         path = self._cache_path(key)
         if not path.exists():
@@ -67,10 +68,10 @@ class ThreatContextCache:
         try:
             data = json.loads(path.read_text())
             cached_at = datetime.fromisoformat(data["cached_at"])
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             # Handle naive timestamps from older cache entries
             if cached_at.tzinfo is None:
-                cached_at = cached_at.replace(tzinfo=timezone.utc)
+                cached_at = cached_at.replace(tzinfo=UTC)
             return now - cached_at > self.ttl
         except (json.JSONDecodeError, KeyError, ValueError):
             return True
@@ -88,7 +89,7 @@ class ThreatContextCache:
                 json.dump(
                     {
                         "value": value,
-                        "cached_at": datetime.now(timezone.utc).isoformat(),
+                        "cached_at": datetime.now(UTC).isoformat(),
                     },
                     f,
                     indent=2,

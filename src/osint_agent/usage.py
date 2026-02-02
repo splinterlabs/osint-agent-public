@@ -6,8 +6,9 @@ import functools
 import logging
 import threading
 from collections import defaultdict
-from datetime import datetime, timezone
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +22,7 @@ class UsageTracker:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._investigation_name: str = ""
-        self._tool_calls: dict[str, dict[str, int]] = defaultdict(
-            lambda: {"calls": 0, "errors": 0}
-        )
+        self._tool_calls: dict[str, dict[str, int]] = defaultdict(lambda: {"calls": 0, "errors": 0})
         self._api_requests: dict[str, dict[str, int]] = defaultdict(
             lambda: {"calls": 0, "errors": 0}
         )
@@ -35,7 +34,7 @@ class UsageTracker:
             self._investigation_name = investigation_name
             self._tool_calls = defaultdict(lambda: {"calls": 0, "errors": 0})
             self._api_requests = defaultdict(lambda: {"calls": 0, "errors": 0})
-            self._started_at = datetime.now(timezone.utc).isoformat()
+            self._started_at = datetime.now(UTC).isoformat()
             logger.info(f"Usage tracker reset for investigation: {investigation_name}")
 
     def record_tool_call(self, tool_name: str, error: bool = False) -> None:
@@ -63,7 +62,7 @@ class UsageTracker:
             return {
                 "investigation": self._investigation_name,
                 "started_at": self._started_at,
-                "snapshot_at": datetime.now(timezone.utc).isoformat(),
+                "snapshot_at": datetime.now(UTC).isoformat(),
                 "summary": {
                     "total_tool_calls": total_tool_calls,
                     "total_tool_errors": total_tool_errors,

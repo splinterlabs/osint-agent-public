@@ -301,7 +301,7 @@ class TestCampaignManager:
 
     def test_list_campaigns_filter_by_status(self, temp_dir):
         manager = CampaignManager(data_dir=temp_dir)
-        c1 = manager.create(name="Active Campaign", description="Test")
+        manager.create(name="Active Campaign", description="Test")
         c2 = manager.create(name="Resolved Campaign", description="Test")
         c2.update_status(CampaignStatus.RESOLVED)
         manager.update(c2)

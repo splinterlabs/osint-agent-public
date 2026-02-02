@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
 
 import keyring
 
@@ -26,7 +25,7 @@ KEYS = {
 }
 
 
-def get_api_key(key_name: str) -> Optional[str]:
+def get_api_key(key_name: str) -> str | None:
     """Retrieve API key from secure storage or environment.
 
     Order of precedence:

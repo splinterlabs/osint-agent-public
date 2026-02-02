@@ -2,17 +2,15 @@
 
 import pytest
 import responses
-from responses import matchers
 
 from osint_agent.clients.base import (
     APIError,
-    APITimeoutError,
     BaseClient,
     ProxyConfig,
     RateLimitError,
 )
-from osint_agent.clients.nvd import NVDClient
 from osint_agent.clients.cisa_kev import CISAKEVClient
+from osint_agent.clients.nvd import NVDClient
 
 
 class TestProxyConfig:
@@ -44,10 +42,12 @@ class TestProxyConfig:
         assert config.should_bypass("http://external.com/v1") is False
 
     def test_proxy_from_dict(self):
-        config = ProxyConfig.from_dict({
-            "http_proxy": "http://proxy:8080",
-            "enabled": True,
-        })
+        config = ProxyConfig.from_dict(
+            {
+                "http_proxy": "http://proxy:8080",
+                "enabled": True,
+            }
+        )
         assert config.http_proxy == "http://proxy:8080"
         assert config.enabled is True
 
@@ -158,32 +158,34 @@ class TestNVDClient:
     @responses.activate
     def test_lookup_cve_found(self):
         mock_response = {
-            "vulnerabilities": [{
-                "cve": {
-                    "id": "CVE-2024-1234",
-                    "descriptions": [
-                        {"lang": "en", "value": "Test vulnerability"}
-                    ],
-                    "metrics": {
-                        "cvssMetricV31": [{
-                            "cvssData": {
-                                "baseScore": 9.8,
-                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-                                "baseSeverity": "CRITICAL",
-                                "attackVector": "NETWORK",
-                                "attackComplexity": "LOW",
-                                "privilegesRequired": "NONE",
-                                "userInteraction": "NONE",
-                            }
-                        }]
-                    },
-                    "weaknesses": [],
-                    "configurations": [],
-                    "references": [],
-                    "published": "2024-01-15T00:00:00.000",
-                    "lastModified": "2024-01-16T00:00:00.000",
+            "vulnerabilities": [
+                {
+                    "cve": {
+                        "id": "CVE-2024-1234",
+                        "descriptions": [{"lang": "en", "value": "Test vulnerability"}],
+                        "metrics": {
+                            "cvssMetricV31": [
+                                {
+                                    "cvssData": {
+                                        "baseScore": 9.8,
+                                        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                        "baseSeverity": "CRITICAL",
+                                        "attackVector": "NETWORK",
+                                        "attackComplexity": "LOW",
+                                        "privilegesRequired": "NONE",
+                                        "userInteraction": "NONE",
+                                    }
+                                }
+                            ]
+                        },
+                        "weaknesses": [],
+                        "configurations": [],
+                        "references": [],
+                        "published": "2024-01-15T00:00:00.000",
+                        "lastModified": "2024-01-16T00:00:00.000",
+                    }
                 }
-            }]
+            ]
         }
 
         responses.add(
@@ -237,9 +239,15 @@ class TestNVDClient:
                         "id": "CVE-2024-0001",
                         "descriptions": [{"lang": "en", "value": "Critical vuln"}],
                         "metrics": {
-                            "cvssMetricV31": [{
-                                "cvssData": {"baseScore": 9.8, "vectorString": "", "baseSeverity": "CRITICAL"}
-                            }]
+                            "cvssMetricV31": [
+                                {
+                                    "cvssData": {
+                                        "baseScore": 9.8,
+                                        "vectorString": "",
+                                        "baseSeverity": "CRITICAL",
+                                    }
+                                }
+                            ]
                         },
                         "weaknesses": [],
                         "configurations": [],
@@ -251,9 +259,15 @@ class TestNVDClient:
                         "id": "CVE-2024-0002",
                         "descriptions": [{"lang": "en", "value": "High vuln"}],
                         "metrics": {
-                            "cvssMetricV31": [{
-                                "cvssData": {"baseScore": 7.5, "vectorString": "", "baseSeverity": "HIGH"}
-                            }]
+                            "cvssMetricV31": [
+                                {
+                                    "cvssData": {
+                                        "baseScore": 7.5,
+                                        "vectorString": "",
+                                        "baseSeverity": "HIGH",
+                                    }
+                                }
+                            ]
                         },
                         "weaknesses": [],
                         "configurations": [],
@@ -299,7 +313,7 @@ class TestCISAKEVClient:
                     "knownRansomwareCampaignUse": "Known",
                     "notes": "",
                 }
-            ]
+            ],
         }
 
         responses.add(
@@ -319,10 +333,7 @@ class TestCISAKEVClient:
 
     @responses.activate
     def test_lookup_not_found(self):
-        mock_catalog = {
-            "catalogVersion": "2024.01.15",
-            "vulnerabilities": []
-        }
+        mock_catalog = {"catalogVersion": "2024.01.15", "vulnerabilities": []}
 
         responses.add(
             responses.GET,
@@ -340,9 +351,16 @@ class TestCISAKEVClient:
     def test_is_exploited(self):
         mock_catalog = {
             "vulnerabilities": [
-                {"cveID": "CVE-2024-1234", "vendorProject": "Test", "product": "Test",
-                 "vulnerabilityName": "", "dateAdded": "", "shortDescription": "",
-                 "requiredAction": "", "dueDate": ""}
+                {
+                    "cveID": "CVE-2024-1234",
+                    "vendorProject": "Test",
+                    "product": "Test",
+                    "vulnerabilityName": "",
+                    "dateAdded": "",
+                    "shortDescription": "",
+                    "requiredAction": "",
+                    "dueDate": "",
+                }
             ]
         }
 
@@ -379,15 +397,36 @@ class TestCISAKEVClient:
     def test_get_by_vendor(self):
         mock_catalog = {
             "vulnerabilities": [
-                {"cveID": "CVE-2024-0001", "vendorProject": "Microsoft", "product": "Windows",
-                 "vulnerabilityName": "", "dateAdded": "", "shortDescription": "",
-                 "requiredAction": "", "dueDate": ""},
-                {"cveID": "CVE-2024-0002", "vendorProject": "Apple", "product": "iOS",
-                 "vulnerabilityName": "", "dateAdded": "", "shortDescription": "",
-                 "requiredAction": "", "dueDate": ""},
-                {"cveID": "CVE-2024-0003", "vendorProject": "Microsoft", "product": "Office",
-                 "vulnerabilityName": "", "dateAdded": "", "shortDescription": "",
-                 "requiredAction": "", "dueDate": ""},
+                {
+                    "cveID": "CVE-2024-0001",
+                    "vendorProject": "Microsoft",
+                    "product": "Windows",
+                    "vulnerabilityName": "",
+                    "dateAdded": "",
+                    "shortDescription": "",
+                    "requiredAction": "",
+                    "dueDate": "",
+                },
+                {
+                    "cveID": "CVE-2024-0002",
+                    "vendorProject": "Apple",
+                    "product": "iOS",
+                    "vulnerabilityName": "",
+                    "dateAdded": "",
+                    "shortDescription": "",
+                    "requiredAction": "",
+                    "dueDate": "",
+                },
+                {
+                    "cveID": "CVE-2024-0003",
+                    "vendorProject": "Microsoft",
+                    "product": "Office",
+                    "vulnerabilityName": "",
+                    "dateAdded": "",
+                    "shortDescription": "",
+                    "requiredAction": "",
+                    "dueDate": "",
+                },
             ]
         }
 
@@ -410,16 +449,40 @@ class TestCISAKEVClient:
             "catalogVersion": "2024.01.15",
             "dateReleased": "2024-01-15",
             "vulnerabilities": [
-                {"cveID": "CVE-1", "vendorProject": "Microsoft", "knownRansomwareCampaignUse": "Known",
-                 "product": "", "vulnerabilityName": "", "dateAdded": "", "shortDescription": "",
-                 "requiredAction": "", "dueDate": ""},
-                {"cveID": "CVE-2", "vendorProject": "Microsoft", "knownRansomwareCampaignUse": "Unknown",
-                 "product": "", "vulnerabilityName": "", "dateAdded": "", "shortDescription": "",
-                 "requiredAction": "", "dueDate": ""},
-                {"cveID": "CVE-3", "vendorProject": "Apple", "knownRansomwareCampaignUse": "Known",
-                 "product": "", "vulnerabilityName": "", "dateAdded": "", "shortDescription": "",
-                 "requiredAction": "", "dueDate": ""},
-            ]
+                {
+                    "cveID": "CVE-1",
+                    "vendorProject": "Microsoft",
+                    "knownRansomwareCampaignUse": "Known",
+                    "product": "",
+                    "vulnerabilityName": "",
+                    "dateAdded": "",
+                    "shortDescription": "",
+                    "requiredAction": "",
+                    "dueDate": "",
+                },
+                {
+                    "cveID": "CVE-2",
+                    "vendorProject": "Microsoft",
+                    "knownRansomwareCampaignUse": "Unknown",
+                    "product": "",
+                    "vulnerabilityName": "",
+                    "dateAdded": "",
+                    "shortDescription": "",
+                    "requiredAction": "",
+                    "dueDate": "",
+                },
+                {
+                    "cveID": "CVE-3",
+                    "vendorProject": "Apple",
+                    "knownRansomwareCampaignUse": "Known",
+                    "product": "",
+                    "vulnerabilityName": "",
+                    "dateAdded": "",
+                    "shortDescription": "",
+                    "requiredAction": "",
+                    "dueDate": "",
+                },
+            ],
         }
 
         responses.add(

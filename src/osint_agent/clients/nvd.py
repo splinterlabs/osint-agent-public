@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from ..keymanager import get_api_key
 from .base import BaseClient
@@ -16,7 +16,7 @@ class NVDClient(BaseClient):
     DEFAULT_TIMEOUT = 30
     CACHE_TTL_HOURS = 24
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         key = api_key or get_api_key("NVD_API_KEY")
         super().__init__(api_key=key)
 
@@ -60,7 +60,7 @@ class NVDClient(BaseClient):
         Returns:
             List of CVE details
         """
-        end_date = datetime.now(timezone.utc)
+        end_date = datetime.now(UTC)
         start_date = end_date - timedelta(days=days)
 
         params = {
