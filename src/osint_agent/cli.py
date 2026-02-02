@@ -5,10 +5,10 @@ from __future__ import annotations
 import argparse
 import sqlite3
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from .keymanager import delete_api_key, print_key_status, set_api_key, KEYS
+from .keymanager import KEYS, delete_api_key, print_key_status, set_api_key
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 IOC_DB_PATH = PROJECT_ROOT / "data" / "iocs.db"
@@ -77,7 +77,7 @@ def cmd_iocs(args: argparse.Namespace) -> int:
             total = cursor.fetchone()[0]
             cursor.execute("SELECT type, COUNT(*) as cnt FROM iocs GROUP BY type ORDER BY cnt DESC")
             by_type = cursor.fetchall()
-            yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+            yesterday = (datetime.now(UTC) - timedelta(days=1)).isoformat()
             cursor.execute("SELECT COUNT(*) FROM iocs WHERE first_seen > ?", (yesterday,))
             recent = cursor.fetchone()[0]
 
@@ -165,8 +165,9 @@ def cmd_iocs(args: argparse.Namespace) -> int:
 
 def cmd_extract(args: argparse.Namespace) -> int:
     """Extract IOCs from file or stdin."""
-    from .extractors import extract_iocs
     import json
+
+    from .extractors import extract_iocs
 
     if args.file:
         content = Path(args.file).read_text()
@@ -193,8 +194,9 @@ def cmd_extract(args: argparse.Namespace) -> int:
 
 def cmd_lookup(args: argparse.Namespace) -> int:
     """Look up CVE details."""
-    from .clients import NVDClient, CISAKEVClient
     import json
+
+    from .clients import CISAKEVClient, NVDClient
 
     nvd = NVDClient()
     kev = CISAKEVClient()
@@ -214,7 +216,7 @@ def cmd_lookup(args: argparse.Namespace) -> int:
     if args.format == "json":
         print(json.dumps(cve_data, indent=2))
     elif args.format == "stix":
-        from .stix_export import cve_to_stix, STIXBundle
+        from .stix_export import STIXBundle, cve_to_stix
         bundle = STIXBundle()
         bundle.add(cve_to_stix(cve_data))
         print(bundle.to_json())

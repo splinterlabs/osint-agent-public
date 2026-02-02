@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
 
 import keyring
 
@@ -26,7 +25,7 @@ KEYS = {
 }
 
 
-def get_api_key(key_name: str) -> Optional[str]:
+def get_api_key(key_name: str) -> str | None:
     """Retrieve API key from secure storage or environment.
 
     Order of precedence:
@@ -42,7 +41,7 @@ def get_api_key(key_name: str) -> Optional[str]:
     service_key = KEYS.get(key_name)
     if service_key:
         try:
-            value: Optional[str] = keyring.get_password(SERVICE_NAME, service_key)
+            value: str | None = keyring.get_password(SERVICE_NAME, service_key)
             if value:
                 return value
         except keyring.errors.KeyringError as e:

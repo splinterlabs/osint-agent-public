@@ -1,6 +1,5 @@
 """Unit tests for IOC extraction."""
 
-import pytest
 
 from osint_agent.extractors import (
     extract_iocs,

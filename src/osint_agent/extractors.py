@@ -5,8 +5,10 @@ from __future__ import annotations
 import atexit
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +46,7 @@ VALID_TLDS = {
     "ru", "cn", "de", "uk", "fr", "jp", "br", "in", "it", "nl", "au",
     "es", "ca", "kr", "pl", "ua", "ir", "kp",
     # Commonly abused
-    "su", "cc", "tk", "ml", "ga", "cf", "gq", "pw", "top", "buzz",
+    "su", "cc", "tk", "ml", "ga", "cf", "gq", "pw", "buzz",
     # Special
     "onion", "bit", "i2p",
 }

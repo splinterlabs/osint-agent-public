@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
-
 import logging
+from typing import Any
 
 from ..keymanager import get_api_key
 from .base import BaseClient
@@ -25,7 +24,7 @@ class OTXClient(BaseClient):
     DEFAULT_TIMEOUT = 30
     CACHE_TTL_HOURS = 4
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         key = api_key or get_api_key("OTX_API_KEY")
         super().__init__(api_key=key)
 
@@ -158,7 +157,7 @@ class OTXClient(BaseClient):
 
     def get_subscribed_pulses(
         self,
-        modified_since: Optional[str] = None,
+        modified_since: str | None = None,
         max_results: int = 50,
     ) -> list[dict[str, Any]]:
         """Get pulses from subscribed feeds.

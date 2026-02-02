@@ -11,9 +11,9 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from osint_agent.parallel import get_workers, parallel_collect_sets
 
@@ -37,7 +37,7 @@ def _load_behavior_techniques() -> dict[str, list[str]]:
                     data: dict[str, Any] = json.load(f)
                     result: dict[str, list[str]] = data.get("patterns", {})
                     return result
-            except (json.JSONDecodeError, IOError) as e:
+            except (OSError, json.JSONDecodeError) as e:
                 logger.warning(f"Failed to load behavior techniques config: {e}")
 
     logger.warning("Behavior techniques config not found, using empty mappings")
@@ -56,8 +56,8 @@ class CorrelationResult:
     techniques: list[str] = field(default_factory=list)
     threat_actors: list[str] = field(default_factory=list)
     confidence: float = 0.0
-    first_seen: Optional[str] = None
-    last_seen: Optional[str] = None
+    first_seen: str | None = None
+    last_seen: str | None = None
     tags: list[str] = field(default_factory=list)
 
 
@@ -70,7 +70,7 @@ class ClusterResult:
     indicator_type: str
     members: list[dict[str, Any]] = field(default_factory=list)
     common_sources: list[str] = field(default_factory=list)
-    time_window: Optional[tuple[str, str]] = None
+    time_window: tuple[str, str] | None = None
     confidence: float = 0.0
 
 
@@ -98,7 +98,7 @@ class CorrelationEngine:
     }
 
     # Behavioral patterns mapped to techniques - loaded from config
-    _behavior_techniques: Optional[dict[str, list[str]]] = None
+    _behavior_techniques: dict[str, list[str]] | None = None
 
     @classmethod
     def get_behavior_techniques(cls) -> dict[str, list[str]]:
@@ -128,8 +128,8 @@ class CorrelationEngine:
         ioc_type: str,
         value: str,
         source: str,
-        timestamp: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        timestamp: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Add IOC to correlation index.
 
@@ -146,7 +146,7 @@ class CorrelationEngine:
                 "type": ioc_type,
                 "value": value,
                 "source": source,
-                "timestamp": timestamp or datetime.now(timezone.utc).isoformat(),
+                "timestamp": timestamp or datetime.now(UTC).isoformat(),
                 "metadata": metadata or {},
             }
         )
@@ -308,7 +308,7 @@ class CorrelationEngine:
             )
 
             current_cluster: list[dict[str, Any]] = []
-            cluster_start: Optional[datetime] = None
+            cluster_start: datetime | None = None
 
             for ioc in sorted_iocs:
                 ioc_key = f"{ioc['type']}:{ioc['value']}"
@@ -357,7 +357,7 @@ class CorrelationEngine:
         primary_ioc = next(i for i in iocs if i["type"] == primary_type)
 
         timestamps = [str(i.get("timestamp")) for i in iocs if i.get("timestamp")]
-        time_window: Optional[tuple[str, str]] = (min(timestamps), max(timestamps)) if timestamps else None
+        time_window: tuple[str, str] | None = (min(timestamps), max(timestamps)) if timestamps else None
 
         return ClusterResult(
             cluster_id=str(uuid.uuid4())[:8],

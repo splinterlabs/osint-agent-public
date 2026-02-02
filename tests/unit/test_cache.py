@@ -1,7 +1,6 @@
 """Unit tests for TTL-based file cache."""
 
 import json
-import time
 from datetime import datetime, timedelta
 
 import pytest

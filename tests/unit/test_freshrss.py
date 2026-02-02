@@ -3,8 +3,8 @@
 import pytest
 import responses
 
-from osint_agent.clients.freshrss import FreshRSSClient
 from osint_agent.clients.base import APIError
+from osint_agent.clients.freshrss import FreshRSSClient
 
 
 class TestFreshRSSAuthentication:
