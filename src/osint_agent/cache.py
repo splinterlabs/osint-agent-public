@@ -76,13 +76,24 @@ class ThreatContextCache:
             return True
 
     def set(self, key: str, value: Any) -> None:
-        """Store value in cache with timestamp (atomic write)."""
+        """Store value in cache with timestamp and secure permissions (atomic write).
+
+        SECURITY: Sets restrictive file permissions (0600) to prevent unauthorized access.
+        Cache files may contain sensitive API responses with PII or threat intelligence.
+        """
         path = self._cache_path(key)
-        fd, tmp_path = tempfile.mkstemp(
-            dir=self.cache_dir,
-            prefix=".cache_",
-            suffix=".json.tmp",
-        )
+
+        # Create temp file with secure permissions
+        old_umask = os.umask(0o077)  # Ensure temp file is created with 600
+        try:
+            fd, tmp_path = tempfile.mkstemp(
+                dir=self.cache_dir,
+                prefix=".cache_",
+                suffix=".json.tmp",
+            )
+        finally:
+            os.umask(old_umask)  # Restore original umask
+
         try:
             with open(fd, "w") as f:
                 json.dump(
@@ -93,7 +104,15 @@ class ThreatContextCache:
                     f,
                     indent=2,
                 )
+
+            # Explicitly set restrictive permissions (owner read/write only)
+            os.chmod(tmp_path, 0o600)
+
+            # Atomic rename
             os.replace(tmp_path, path)
+
+            # Verify final file permissions (defense in depth)
+            os.chmod(path, 0o600)
         except Exception:
             Path(tmp_path).unlink(missing_ok=True)
             raise
