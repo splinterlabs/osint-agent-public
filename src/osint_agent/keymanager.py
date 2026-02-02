@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Optional
 
 import keyring
 
@@ -25,7 +26,7 @@ KEYS = {
 }
 
 
-def get_api_key(key_name: str) -> str | None:
+def get_api_key(key_name: str) -> Optional[str]:
     """Retrieve API key from secure storage or environment.
 
     Order of precedence:
@@ -41,7 +42,7 @@ def get_api_key(key_name: str) -> str | None:
     service_key = KEYS.get(key_name)
     if service_key:
         try:
-            value = keyring.get_password(SERVICE_NAME, service_key)
+            value: Optional[str] = keyring.get_password(SERVICE_NAME, service_key)
             if value:
                 return value
         except keyring.errors.KeyringError as e:
@@ -55,6 +56,10 @@ def set_api_key(key_name: str, value: str) -> bool:
     service_key = KEYS.get(key_name)
     if not service_key:
         logger.error(f"Unknown key: {key_name}. Valid keys: {list(KEYS.keys())}")
+        return False
+
+    if not value or not value.strip():
+        logger.error(f"Refusing to store empty value for {key_name}")
         return False
 
     try:
@@ -82,12 +87,27 @@ def delete_api_key(key_name: str) -> bool:
         return False
 
 
+def is_key_configured(key_name: str) -> bool:
+    """Check whether an API key is configured without loading its value.
+
+    Checks environment variables first, then the system keychain.
+    """
+    if os.environ.get(key_name):
+        return True
+
+    service_key = KEYS.get(key_name)
+    if service_key:
+        try:
+            return keyring.get_password(SERVICE_NAME, service_key) is not None
+        except keyring.errors.KeyringError:
+            return False
+
+    return False
+
+
 def list_configured_keys() -> dict[str, bool]:
     """List which API keys are configured."""
-    status = {}
-    for key_name in KEYS:
-        status[key_name] = get_api_key(key_name) is not None
-    return status
+    return {key_name: is_key_configured(key_name) for key_name in KEYS}
 
 
 def print_key_status() -> None:

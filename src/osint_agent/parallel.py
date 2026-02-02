@@ -12,12 +12,11 @@ from __future__ import annotations
 import json
 import logging
 import threading
-from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import monotonic
-from typing import Any, TypeVar
+from typing import Any, Callable, Iterable, TypeVar
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -43,9 +42,10 @@ def _load_parallelism_config() -> dict[str, Any]:
         if config_path.exists():
             try:
                 with open(config_path) as f:
-                    data = json.load(f)
-                    return data.get("parallelism", {})
-            except (OSError, json.JSONDecodeError) as e:
+                    data: dict[str, Any] = json.load(f)
+                    result: dict[str, Any] = data.get("parallelism", {})
+                    return result
+            except (json.JSONDecodeError, IOError) as e:
                 logger.warning(f"Failed to load parallelism config: {e}")
 
     return {}
@@ -67,7 +67,8 @@ def get_workers(key: str, default: int) -> int:
     config = get_config()
     if not config.get("enabled", True):
         return 1  # Disable parallelism by returning 1 worker
-    return config.get(key, default)
+    result: int = config.get(key, default)
+    return result
 
 
 @dataclass
@@ -136,7 +137,9 @@ def parallel_map(
     results: list[R | None] = [None] * len(items_list)
 
     with ThreadPoolExecutor(max_workers=metrics.workers) as executor:
-        future_to_idx = {executor.submit(fn, item): idx for idx, item in enumerate(items_list)}
+        future_to_idx = {
+            executor.submit(fn, item): idx for idx, item in enumerate(items_list)
+        }
 
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]

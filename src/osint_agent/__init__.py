@@ -2,10 +2,10 @@
 
 __version__ = "0.1.0"
 
+from .extractors import extract_iocs
+from .cpe import WatchlistMatcher, match_cpe_pattern
 from .campaigns import Campaign, CampaignManager, CampaignStatus
 from .correlation import CorrelationEngine
-from .cpe import WatchlistMatcher, match_cpe_pattern
-from .extractors import extract_iocs
 
 __all__ = [
     "__version__",

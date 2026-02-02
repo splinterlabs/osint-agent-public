@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urljoin
 
 import requests
 
 from .base import APIError, BaseClient
+
+_KEYMANAGER_AVAILABLE = True
+try:
+    from osint_agent.keymanager import get_api_key as _get_api_key
+except ImportError:
+    _KEYMANAGER_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -32,21 +38,24 @@ class FreshRSSClient(BaseClient):
         base_url: str,
         username: str,
         password: str,
-        timeout: int | None = None,
+        timeout: Optional[int] = None,
     ):
         """Initialize FreshRSS client.
+
+        SECURITY: Password is NOT stored as instance variable to minimize memory exposure.
+        Password is fetched from keymanager on-demand during authentication only.
 
         Args:
             base_url: Base URL of FreshRSS instance (e.g., https://rss.example.com)
             username: FreshRSS username
-            password: FreshRSS password
+            password: FreshRSS password (stored in keyring, not in memory)
             timeout: Request timeout in seconds
         """
         self.base_url = base_url.rstrip("/")
         self.BASE_URL = self.base_url
         self.username = username
-        self.password = password
-        self._auth_token: str | None = None
+        # DO NOT store password - it will be fetched from keymanager when needed
+        self._auth_token: Optional[str] = None
         super().__init__(timeout=timeout)
 
     def _get_headers(self) -> dict[str, str]:
@@ -56,16 +65,42 @@ class FreshRSSClient(BaseClient):
             headers["Authorization"] = f"GoogleLogin auth={self._auth_token}"
         return headers
 
-    def authenticate(self) -> str:
-        """Authenticate with FreshRSS and get auth token.
+    def _get_password(self) -> str:
+        """Fetch password from keymanager on demand.
+
+        SECURITY: This avoids storing password in memory as an instance variable.
+        Password is only in memory during authentication, then immediately cleared.
 
         Returns:
-            Auth token string
+            Password from keyring
+
+        Raises:
+            APIError: If password is not available
+        """
+        if not _KEYMANAGER_AVAILABLE:
+            raise APIError("Keymanager not available for FreshRSS authentication")
+
+        password = _get_api_key("FRESHRSS_PASSWORD")
+        if not password:
+            raise APIError("FRESHRSS_PASSWORD not configured in keyring. Use 'osint-agent keys set FRESHRSS_PASSWORD' to configure.")
+        return password
+
+    def authenticate(self) -> bool:
+        """Authenticate with FreshRSS and obtain an auth token.
+
+        SECURITY: Password is fetched from keyring only when needed and immediately
+        cleared from local scope after authentication.
+
+        Returns:
+            True if authentication succeeded.
 
         Raises:
             APIError: If authentication fails
         """
         logger.info(f"Authenticating to FreshRSS at {self.base_url}")
+
+        # Fetch password only when needed, don't store as instance variable
+        password = self._get_password()
 
         url = urljoin(self.base_url, "/accounts/ClientLogin")
 
@@ -74,13 +109,19 @@ class FreshRSSClient(BaseClient):
                 url,
                 data={
                     "Email": self.username,
-                    "Passwd": self.password,
+                    "Passwd": password,
                 },
                 timeout=self.timeout,
                 proxies=self.proxy.get_proxies() if not self.proxy.should_bypass(url) else {},
             )
+            # Explicitly clear password from local scope as soon as possible
+            del password
+
             response.raise_for_status()
         except requests.RequestException as e:
+            # Ensure password is cleared even on exception
+            if 'password' in locals():
+                del password
             raise APIError(f"FreshRSS authentication failed: {e}")
 
         # Parse response - format is key=value pairs
@@ -95,7 +136,7 @@ class FreshRSSClient(BaseClient):
 
         self._auth_token = auth_data["Auth"]
         logger.info("Successfully authenticated to FreshRSS")
-        return self._auth_token
+        return True
 
     def _ensure_authenticated(self) -> None:
         """Ensure we have a valid auth token."""
@@ -114,28 +155,26 @@ class FreshRSSClient(BaseClient):
 
         subscriptions = []
         for sub in response.get("subscriptions", []):
-            subscriptions.append(
-                {
-                    "id": sub.get("id", ""),
-                    "title": sub.get("title", ""),
-                    "url": sub.get("url", ""),
-                    "html_url": sub.get("htmlUrl", ""),
-                    "icon_url": sub.get("iconUrl", ""),
-                    "categories": [
-                        {"id": cat.get("id", ""), "label": cat.get("label", "")}
-                        for cat in sub.get("categories", [])
-                    ],
-                }
-            )
+            subscriptions.append({
+                "id": sub.get("id", ""),
+                "title": sub.get("title", ""),
+                "url": sub.get("url", ""),
+                "html_url": sub.get("htmlUrl", ""),
+                "icon_url": sub.get("iconUrl", ""),
+                "categories": [
+                    {"id": cat.get("id", ""), "label": cat.get("label", "")}
+                    for cat in sub.get("categories", [])
+                ],
+            })
 
         return subscriptions
 
     def get_entries(
         self,
-        feed_id: str | None = None,
+        feed_id: Optional[str] = None,
         count: int = 20,
         unread_only: bool = False,
-        continuation: str | None = None,
+        continuation: Optional[str] = None,
     ) -> dict[str, Any]:
         """Fetch entries from a feed or all feeds.
 
@@ -151,7 +190,10 @@ class FreshRSSClient(BaseClient):
         self._ensure_authenticated()
 
         # Determine stream ID
-        stream_id = feed_id or "user/-/state/com.google/reading-list"
+        if feed_id:
+            stream_id = feed_id
+        else:
+            stream_id = "user/-/state/com.google/reading-list"
 
         params: dict[str, Any] = {
             "output": "json",
@@ -166,7 +208,6 @@ class FreshRSSClient(BaseClient):
 
         # URL encode the stream ID in the path
         from urllib.parse import quote
-
         endpoint = f"/reader/api/0/stream/contents/{quote(stream_id, safe='')}"
 
         response = self.get(endpoint, params=params)
@@ -191,7 +232,8 @@ class FreshRSSClient(BaseClient):
             List of unread entry dicts
         """
         result = self.get_entries(feed_id=None, count=count, unread_only=True)
-        return result["entries"]
+        entries: list[dict[str, Any]] = result["entries"]
+        return entries
 
     def mark_read(self, entry_ids: list[str]) -> bool:
         """Mark entries as read.
@@ -242,8 +284,7 @@ class FreshRSSClient(BaseClient):
 
         # FreshRSS uses a special search stream
         from urllib.parse import quote
-
-        f"user/-/state/com.google/label/{quote(query, safe='')}"
+        search_stream = f"user/-/state/com.google/label/{quote(query, safe='')}"
 
         # Try the standard search endpoint first
         params = {
@@ -264,16 +305,14 @@ class FreshRSSClient(BaseClient):
             query_lower = query.lower()
             filtered = []
             for entry in all_entries["entries"]:
-                if (
-                    query_lower in entry.get("title", "").lower()
-                    or query_lower in entry.get("summary", "").lower()
-                ):
+                if (query_lower in entry.get("title", "").lower() or
+                    query_lower in entry.get("summary", "").lower()):
                     filtered.append(entry)
                     if len(filtered) >= count:
                         break
             return filtered
 
-    def _parse_entry(self, item: dict) -> dict[str, Any]:
+    def _parse_entry(self, item: dict[str, Any]) -> dict[str, Any]:
         """Parse a raw entry item into standardized format.
 
         Args:
@@ -312,7 +351,5 @@ class FreshRSSClient(BaseClient):
             "summary": summary,
             "feed_id": origin.get("streamId", ""),
             "feed_title": origin.get("title", ""),
-            "categories": [
-                cat.get("label", "") for cat in item.get("categories", []) if isinstance(cat, dict)
-            ],
+            "categories": [cat.get("label", "") for cat in item.get("categories", []) if isinstance(cat, dict)],
         }

@@ -17,9 +17,9 @@ import json
 import logging
 import os
 import tempfile
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class ContextManager:
     def __init__(self, context_dir: Path | str):
         self.context_dir = Path(context_dir)
         self.context_dir.mkdir(parents=True, exist_ok=True)
-        self._cache: dict[str, dict] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
 
     def _context_path(self, tier: str) -> Path:
         """Get path for a context tier file."""
@@ -51,7 +51,7 @@ class ContextManager:
 
         try:
             with open(path) as f:
-                data = json.load(f)
+                data: dict[str, Any] = json.load(f)
                 self._cache[tier] = data
                 return data
         except (json.JSONDecodeError, OSError) as e:
@@ -59,19 +59,37 @@ class ContextManager:
             return self._default_context(tier)
 
     def _save_tier(self, tier: str, data: dict[str, Any]) -> None:
-        """Save a context tier to disk (atomic write)."""
-        path = self._context_path(tier)
-        data["last_modified"] = datetime.now(UTC).isoformat()
+        """Save a context tier to disk with secure permissions (atomic write).
 
-        fd, tmp_path = tempfile.mkstemp(
-            dir=self.context_dir,
-            prefix=f".{tier}_",
-            suffix=".json.tmp",
-        )
+        SECURITY: Sets restrictive file permissions (0600) to prevent unauthorized access.
+        Context files may contain sensitive investigation data and IOCs.
+        """
+        path = self._context_path(tier)
+        data["last_modified"] = datetime.now(timezone.utc).isoformat()
+
+        # Create temp file with secure permissions
+        old_umask = os.umask(0o077)  # Ensure temp file is created with 600
+        try:
+            fd, tmp_path = tempfile.mkstemp(
+                dir=self.context_dir,
+                prefix=f".{tier}_",
+                suffix=".json.tmp",
+            )
+        finally:
+            os.umask(old_umask)  # Restore original umask
+
         try:
             with open(fd, "w") as f:
                 json.dump(data, f, indent=2, default=str)
+
+            # Explicitly set restrictive permissions (owner read/write only)
+            os.chmod(tmp_path, 0o600)
+
+            # Atomic rename
             os.replace(tmp_path, path)
+
+            # Verify final file permissions (defense in depth)
+            os.chmod(path, 0o600)
         except Exception:
             Path(tmp_path).unlink(missing_ok=True)
             raise
@@ -82,8 +100,8 @@ class ContextManager:
         """Get default context for a tier."""
         base = {
             "tier": tier,
-            "created": datetime.now(UTC).isoformat(),
-            "last_modified": datetime.now(UTC).isoformat(),
+            "created": datetime.now(timezone.utc).isoformat(),
+            "last_modified": datetime.now(timezone.utc).isoformat(),
         }
 
         if tier == "strategic":
@@ -142,7 +160,7 @@ class ContextManager:
 
         return base
 
-    def get(self, tier: str, key: str | None = None) -> Any:
+    def get(self, tier: str, key: Optional[str] = None) -> Any:
         """Get context data.
 
         Args:
@@ -207,7 +225,7 @@ class ContextManager:
         data[key].append(value)
         self._save_tier(tier, data)
 
-    def get_all(self) -> dict[str, dict]:
+    def get_all(self) -> dict[str, dict[str, Any]]:
         """Get all context tiers."""
         return {tier: self._load_tier(tier) for tier in self.TIERS}
 
@@ -218,15 +236,17 @@ class ContextManager:
         return {
             "strategic": {
                 "objective_count": len(all_ctx["strategic"].get("objectives", [])),
-                "priority_threats": all_ctx["strategic"]
-                .get("threat_landscape", {})
-                .get("priority_threats", [])[:5],
+                "priority_threats": all_ctx["strategic"].get("threat_landscape", {}).get(
+                    "priority_threats", []
+                )[:5],
             },
             "operational": {
-                "investigation": all_ctx["operational"].get("investigation", {}).get("name", ""),
-                "status": all_ctx["operational"]
-                .get("investigation", {})
-                .get("status", "not_started"),
+                "investigation": all_ctx["operational"].get("investigation", {}).get(
+                    "name", ""
+                ),
+                "status": all_ctx["operational"].get("investigation", {}).get(
+                    "status", "not_started"
+                ),
             },
             "tactical": {
                 "priority_count": len(all_ctx["tactical"].get("priorities", [])),
@@ -235,7 +255,9 @@ class ContextManager:
                 "usage_stats": all_ctx["tactical"].get("usage_stats", {}),
             },
             "security": {
-                "classification": all_ctx["security"].get("classification", "unclassified"),
+                "classification": all_ctx["security"].get(
+                    "classification", "unclassified"
+                ),
             },
         }
 
@@ -252,7 +274,7 @@ class ContextManager:
         name: str,
         description: str = "",
         scope: str = "",
-        stakeholders: list[str] | None = None,
+        stakeholders: Optional[list[str]] = None,
     ) -> None:
         """Start a new investigation (resets operational and tactical).
 
@@ -273,7 +295,7 @@ class ContextManager:
                     "scope": scope,
                     "stakeholders": stakeholders or [],
                     "status": "in_progress",
-                    "started": datetime.now(UTC).isoformat(),
+                    "started": datetime.now(timezone.utc).isoformat(),
                 }
             },
         )
@@ -287,7 +309,7 @@ class ContextManager:
         value: str,
         confidence: float = 0.5,
         source: str = "",
-        tags: list[str] | None = None,
+        tags: Optional[list[str]] = None,
     ) -> None:
         """Add an IOC to tactical context.
 
@@ -304,7 +326,7 @@ class ContextManager:
             "confidence": confidence,
             "source": source,
             "tags": tags or [],
-            "added": datetime.now(UTC).isoformat(),
+            "added": datetime.now(timezone.utc).isoformat(),
         }
         self.append("tactical", "active_iocs", ioc)
 
@@ -313,7 +335,7 @@ class ContextManager:
         title: str,
         description: str,
         confidence: float = 0.5,
-        evidence: list[str] | None = None,
+        evidence: Optional[list[str]] = None,
     ) -> None:
         """Add a finding to tactical context.
 
@@ -328,6 +350,6 @@ class ContextManager:
             "description": description,
             "confidence": confidence,
             "evidence": evidence or [],
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         self.append("tactical", "findings", finding)

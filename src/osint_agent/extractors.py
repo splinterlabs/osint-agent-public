@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import atexit
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -14,76 +15,46 @@ EXTRACTION_TIMEOUT_SECONDS = 2
 MAX_CONTENT_LENGTH = 500_000  # 500KB max
 
 # Module-level executor to avoid per-call creation overhead
-_timeout_executor = ThreadPoolExecutor(max_workers=1)
+# Named thread for easier debugging
+_timeout_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ioc_timeout_")
+
+
+def _cleanup_executor() -> None:
+    """Shutdown executor on module unload.
+
+    SECURITY: Prevents thread exhaustion and resource leaks.
+    Registered with atexit to ensure cleanup on process termination.
+    """
+    try:
+        _timeout_executor.shutdown(wait=True, cancel_futures=True)
+        logger.debug("IOC timeout executor shutdown completed")
+    except Exception as e:
+        logger.warning(f"Error during executor shutdown: {e}")
+
+
+# Register cleanup handler
+atexit.register(_cleanup_executor)
 
 # Valid TLDs for domain validation (common + security-relevant)
 VALID_TLDS = {
     # Generic
-    "com",
-    "org",
-    "net",
-    "edu",
-    "gov",
-    "mil",
-    "int",
-    "io",
-    "co",
-    "me",
-    "info",
-    "biz",
-    "xyz",
-    "online",
-    "site",
-    "top",
-    "app",
-    "dev",
+    "com", "org", "net", "edu", "gov", "mil", "int", "io", "co", "me",
+    "info", "biz", "xyz", "online", "site", "top", "app", "dev",
     # Country codes (common)
-    "ru",
-    "cn",
-    "de",
-    "uk",
-    "fr",
-    "jp",
-    "br",
-    "in",
-    "it",
-    "nl",
-    "au",
-    "es",
-    "ca",
-    "kr",
-    "pl",
-    "ua",
-    "ir",
-    "kp",
+    "ru", "cn", "de", "uk", "fr", "jp", "br", "in", "it", "nl", "au",
+    "es", "ca", "kr", "pl", "ua", "ir", "kp",
     # Commonly abused
-    "su",
-    "cc",
-    "tk",
-    "ml",
-    "ga",
-    "cf",
-    "gq",
-    "pw",
-    "buzz",
+    "su", "cc", "tk", "ml", "ga", "cf", "gq", "pw", "top", "buzz",
     # Special
-    "onion",
-    "bit",
-    "i2p",
+    "onion", "bit", "i2p",
 }
 
 # Known false positive domains
 FALSE_POSITIVE_DOMAINS = {
-    "example.com",
-    "example.org",
-    "example.net",
-    "test.com",
-    "localhost.localdomain",
-    "schema.org",
-    "w3.org",
-    "xmlns.com",
-    "purl.org",
-    "rdfs.org",
+    "example.com", "example.org", "example.net",
+    "test.com", "localhost.localdomain",
+    "schema.org", "w3.org", "xmlns.com",
+    "purl.org", "rdfs.org",
 }
 
 
@@ -176,7 +147,10 @@ def validate_domain(domain: str) -> bool:
         return False
 
     # Filter file extensions that match domain pattern
-    return not (len(parts) == 2 and parts[0] in ("file", "image", "document", "report"))
+    if len(parts) == 2 and parts[0] in ("file", "image", "document", "report"):
+        return False
+
+    return True
 
 
 def validate_ip(ip: str) -> bool:
@@ -223,7 +197,7 @@ def validate_hash(hash_value: str, hash_type: str) -> bool:
         return False
 
     # Sequential patterns
-    if h in ("0123456789abcdef" * 4)[: len(h)]:
+    if h in ("0123456789abcdef" * 4)[:len(h)]:
         return False
 
     # Common test values
@@ -232,10 +206,13 @@ def validate_hash(hash_value: str, hash_type: str) -> bool:
         "da39a3ee5e6b4b0d3255bfef95601890afd80709",  # SHA1 of empty string
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",  # SHA256 of empty
     }
-    return h not in test_patterns
+    if h in test_patterns:
+        return False
+
+    return True
 
 
-def _run_with_timeout(func, timeout_seconds: int):
+def _run_with_timeout(func: Callable[[], Any], timeout_seconds: int) -> Any:
     """Run a function with timeout protection (cross-platform).
 
     Uses ThreadPoolExecutor for cross-platform timeout support.
@@ -275,7 +252,9 @@ def _extract_iocs_internal(content: str) -> dict[str, list[str]]:
 
     # Domains (with TLD validation)
     domain_matches = IOCPatterns.DOMAIN.findall(content)
-    valid_domains = [refang(d).lower() for d in set(domain_matches) if validate_domain(d)]
+    valid_domains = [
+        refang(d).lower() for d in set(domain_matches) if validate_domain(d)
+    ]
     if valid_domains:
         extracted["domain"] = sorted(set(valid_domains))
 
@@ -286,19 +265,21 @@ def _extract_iocs_internal(content: str) -> dict[str, list[str]]:
         ("sha256", IOCPatterns.SHA256),
     ]:
         matches = pattern.findall(content)
-        valid_hashes = [h.lower() for h in set(matches) if validate_hash(h, hash_type)]
+        valid_hashes = [
+            h.lower() for h in set(matches) if validate_hash(h, hash_type)
+        ]
         if valid_hashes:
             extracted[hash_type] = sorted(valid_hashes)
 
     # CVEs
     cve_matches = IOCPatterns.CVE.findall(content)
     if cve_matches:
-        extracted["cve"] = sorted({c.upper() for c in cve_matches})
+        extracted["cve"] = sorted(set(c.upper() for c in cve_matches))
 
     # URLs
     url_matches = IOCPatterns.URL.findall(content)
     if url_matches:
-        extracted["url"] = sorted({refang(u) for u in url_matches})
+        extracted["url"] = sorted(set(refang(u) for u in url_matches))
 
     # Emails
     email_matches = IOCPatterns.EMAIL.findall(content)
@@ -333,10 +314,11 @@ def extract_iocs(content: str) -> dict[str, list[str]]:
         content = content[:MAX_CONTENT_LENGTH]
 
     try:
-        return _run_with_timeout(
+        result: dict[str, list[str]] = _run_with_timeout(
             lambda: _extract_iocs_internal(content),
             EXTRACTION_TIMEOUT_SECONDS,
         )
+        return result
     except TimeoutError:
         logger.error("IOC extraction timed out - possible ReDoS attempt")
         return {}

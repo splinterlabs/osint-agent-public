@@ -190,13 +190,7 @@ class TestContextGetAll:
 
     def test_get_all_returns_all_tiers(self, ctx):
         all_ctx = ctx.get_all()
-        assert set(all_ctx.keys()) == {
-            "strategic",
-            "operational",
-            "tactical",
-            "technical",
-            "security",
-        }
+        assert set(all_ctx.keys()) == {"strategic", "operational", "tactical", "technical", "security"}
 
     def test_get_summary(self, ctx):
         summary = ctx.get_summary()

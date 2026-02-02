@@ -30,11 +30,9 @@ class MockFastMCP:
 
     def tool(self):
         """Decorator to register tools."""
-
         def decorator(func):
             self.tools[func.__name__] = func
             return func
-
         return decorator
 
 
@@ -97,18 +95,16 @@ class TestNVDTools:
 
         # Mock NVD API
         mock_response = {
-            "vulnerabilities": [
-                {
-                    "cve": {
-                        "id": "CVE-2024-1234",
-                        "descriptions": [{"lang": "en", "value": "Test vuln"}],
-                        "metrics": {},
-                        "weaknesses": [],
-                        "configurations": [],
-                        "references": [],
-                    }
+            "vulnerabilities": [{
+                "cve": {
+                    "id": "CVE-2024-1234",
+                    "descriptions": [{"lang": "en", "value": "Test vuln"}],
+                    "metrics": {},
+                    "weaknesses": [],
+                    "configurations": [],
+                    "references": [],
                 }
-            ]
+            }]
         }
         responses.add(
             responses.GET,
@@ -176,19 +172,17 @@ class TestKEVTools:
         from tools import kev_tools
 
         mock_catalog = {
-            "vulnerabilities": [
-                {
-                    "cveID": "CVE-2024-1234",
-                    "vendorProject": "TestVendor",
-                    "product": "TestProduct",
-                    "vulnerabilityName": "Test",
-                    "dateAdded": "2024-01-01",
-                    "shortDescription": "Test vuln",
-                    "requiredAction": "Patch",
-                    "dueDate": "2024-02-01",
-                    "knownRansomwareCampaignUse": "Known",
-                }
-            ]
+            "vulnerabilities": [{
+                "cveID": "CVE-2024-1234",
+                "vendorProject": "TestVendor",
+                "product": "TestProduct",
+                "vulnerabilityName": "Test",
+                "dateAdded": "2024-01-01",
+                "shortDescription": "Test vuln",
+                "requiredAction": "Patch",
+                "dueDate": "2024-02-01",
+                "knownRansomwareCampaignUse": "Known",
+            }]
         }
         responses.add(
             responses.GET,
@@ -246,7 +240,10 @@ class TestSTIXTools:
         stix_tools.register_tools(mcp)
 
         # Tool expects JSON string input
-        iocs_json = json.dumps({"ipv4": ["192.0.2.1"], "domain": ["malware.net"]})
+        iocs_json = json.dumps({
+            "ipv4": ["192.0.2.1"],
+            "domain": ["malware.net"]
+        })
         result = mcp.tools["iocs_to_stix"](iocs_json)
 
         data = json.loads(result)
@@ -275,7 +272,9 @@ class TestRuleTools:
         mcp = MockFastMCP()
         rule_tools.register_tools(mcp)
 
-        hashes_json = json.dumps([{"type": "md5", "value": "d41d8cd98f00b204e9800998ecf8427e"}])
+        hashes_json = json.dumps([
+            {"type": "md5", "value": "d41d8cd98f00b204e9800998ecf8427e"}
+        ])
         result = mcp.tools["generate_yara_from_hashes"](
             rule_name="test_malware",
             hashes_json=hashes_json,
@@ -315,7 +314,7 @@ class TestContextTools:
         context_tools.register_tools(mcp)
 
         # Check that context tools are registered
-        assert any("context" in name.lower() for name in mcp.tools)
+        assert any("context" in name.lower() for name in mcp.tools.keys())
 
 
 class TestCampaignTools:
@@ -393,25 +392,23 @@ class TestAbusechTools:
             "https://mb-api.abuse.ch/api/v1/",
             json={
                 "query_status": "ok",
-                "data": [
-                    {
-                        "sha256_hash": "abc123",
-                        "sha1_hash": "def456",
-                        "md5_hash": "ghi789",
-                        "file_name": "malware.exe",
-                        "file_type": "exe",
-                        "file_type_mime": "application/x-dosexec",
-                        "file_size": 1234,
-                        "signature": "Emotet",
-                        "first_seen": "2024-01-01",
-                        "last_seen": "2024-01-02",
-                        "reporter": "abuse_ch",
-                        "tags": ["emotet"],
-                        "intelligence": {"downloads": 10, "uploads": 1, "mail": None},
-                        "delivery_method": "email",
-                        "comment": None,
-                    }
-                ],
+                "data": [{
+                    "sha256_hash": "abc123",
+                    "sha1_hash": "def456",
+                    "md5_hash": "ghi789",
+                    "file_name": "malware.exe",
+                    "file_type": "exe",
+                    "file_type_mime": "application/x-dosexec",
+                    "file_size": 1234,
+                    "signature": "Emotet",
+                    "first_seen": "2024-01-01",
+                    "last_seen": "2024-01-02",
+                    "reporter": "abuse_ch",
+                    "tags": ["emotet"],
+                    "intelligence": {"downloads": 10, "uploads": 1, "mail": None},
+                    "delivery_method": "email",
+                    "comment": None,
+                }],
             },
             status=200,
         )
@@ -436,23 +433,21 @@ class TestAbusechTools:
             "https://threatfox-api.abuse.ch/api/v1/",
             json={
                 "query_status": "ok",
-                "data": [
-                    {
-                        "id": "1",
-                        "ioc": "1.2.3.4:443",
-                        "ioc_type": "ip:port",
-                        "threat_type": "botnet_cc",
-                        "malware": "win.emotet",
-                        "malware_alias": None,
-                        "malware_printable": "Emotet",
-                        "confidence_level": 90,
-                        "first_seen": "2024-01-01",
-                        "last_seen": "2024-01-02",
-                        "reporter": "abuse_ch",
-                        "tags": ["emotet"],
-                        "reference": None,
-                    }
-                ],
+                "data": [{
+                    "id": "1",
+                    "ioc": "1.2.3.4:443",
+                    "ioc_type": "ip:port",
+                    "threat_type": "botnet_cc",
+                    "malware": "win.emotet",
+                    "malware_alias": None,
+                    "malware_printable": "Emotet",
+                    "confidence_level": 90,
+                    "first_seen": "2024-01-01",
+                    "last_seen": "2024-01-02",
+                    "reporter": "abuse_ch",
+                    "tags": ["emotet"],
+                    "reference": None,
+                }],
             },
             status=200,
         )
@@ -535,11 +530,7 @@ class TestAttackTools:
         with patch.object(attack_tools, "get_attack_client") as mock_get:
             mock_client = MagicMock()
             mock_client.search_techniques.return_value = [
-                {
-                    "id": "T1059",
-                    "name": "Command and Scripting Interpreter",
-                    "tactics": ["execution"],
-                },
+                {"id": "T1059", "name": "Command and Scripting Interpreter", "tactics": ["execution"]},
             ]
             mock_get.return_value = mock_client
 
@@ -681,7 +672,7 @@ class TestShodanTools:
         mcp = MockFastMCP()
         shodan_tools.register_tools(mcp)
 
-        with patch("osint_agent.keymanager.get_api_key", return_value=None):
+        with patch.object(shodan_tools, "get_api_key", return_value=None):
             result = mcp.tools["shodan_host_lookup"](ip="8.8.8.8")
             assert "Error" in result or "error" in result.lower()
 
@@ -807,7 +798,6 @@ class TestContextToolsFunctional:
 
         with patch.object(context_tools, "get_manager") as mock_get:
             from osint_agent.context import ContextManager
-
             manager = ContextManager(tmp_path)
             mock_get.return_value = manager
 
@@ -829,7 +819,6 @@ class TestContextToolsFunctional:
 
         with patch.object(context_tools, "get_manager") as mock_get:
             from osint_agent.context import ContextManager
-
             manager = ContextManager(tmp_path)
             mock_get.return_value = manager
 
@@ -861,7 +850,6 @@ class TestContextToolsFunctional:
 
         with patch.object(context_tools, "get_manager") as mock_get:
             from osint_agent.context import ContextManager
-
             manager = ContextManager(tmp_path)
             mock_get.return_value = manager
 
@@ -894,7 +882,6 @@ class TestContextToolsFunctional:
 
         with patch.object(context_tools, "get_manager") as mock_get:
             from osint_agent.context import ContextManager
-
             manager = ContextManager(tmp_path)
             mock_get.return_value = manager
 
@@ -925,7 +912,6 @@ class TestCampaignToolsFunctional:
 
         with patch.object(campaign_tools, "get_campaign_manager") as mock_get:
             from osint_agent.campaigns import CampaignManager
-
             manager = CampaignManager(data_dir=tmp_path)
             mock_get.return_value = manager
 
@@ -947,7 +933,6 @@ class TestCampaignToolsFunctional:
 
         with patch.object(campaign_tools, "get_campaign_manager") as mock_get:
             from osint_agent.campaigns import CampaignManager
-
             manager = CampaignManager(data_dir=tmp_path)
             mock_get.return_value = manager
 
@@ -963,7 +948,6 @@ class TestCampaignToolsFunctional:
 
         with patch.object(campaign_tools, "get_campaign_manager") as mock_get:
             from osint_agent.campaigns import CampaignManager
-
             manager = CampaignManager(data_dir=tmp_path)
             mock_get.return_value = manager
 
@@ -1005,7 +989,6 @@ class TestCampaignToolsFunctional:
 
         with patch.object(campaign_tools, "get_campaign_manager") as mock_get:
             from osint_agent.campaigns import CampaignManager
-
             manager = CampaignManager(data_dir=tmp_path)
             mock_get.return_value = manager
 

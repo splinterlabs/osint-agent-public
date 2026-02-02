@@ -1,5 +1,6 @@
 """Unit tests for osint_agent.investigation_log."""
 
+import json
 from pathlib import Path
 
 import pytest

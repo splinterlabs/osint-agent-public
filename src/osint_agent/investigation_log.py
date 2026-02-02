@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +41,7 @@ class InvestigationLogger:
         self._log_dir = log_dir or DEFAULT_LOG_DIR
         self._log_dir.mkdir(parents=True, exist_ok=True)
 
-        ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         safe_indicator = _sanitize_filename(indicator)
         self._filename = f"investigate_{safe_indicator}_{ts}.jsonl"
         self._path = self._log_dir / self._filename
@@ -131,7 +131,7 @@ class InvestigationLogger:
         if not self._path.exists():
             return []
         entries: list[dict[str, Any]] = []
-        with open(self._path, encoding="utf-8") as fh:
+        with open(self._path, "r", encoding="utf-8") as fh:
             for line in fh:
                 line = line.strip()
                 if line:
@@ -148,4 +148,4 @@ class InvestigationLogger:
 
 
 def _now_iso() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
-from typing import Any
+from datetime import datetime, timedelta, timezone
+from typing import Any, Optional
 
 from .base import BaseClient
 
@@ -14,16 +14,16 @@ class CISAKEVClient(BaseClient):
     BASE_URL = "https://www.cisa.gov/sites/default/files/feeds"
     DEFAULT_TIMEOUT = 30
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self._cache: dict | None = None
-        self._cache_time: datetime | None = None
+        self._cache: Optional[dict[str, Any]] = None
+        self._cache_time: Optional[datetime] = None
         self._cache_ttl = timedelta(hours=1)
-        self._cve_index: dict[str, dict] = {}
+        self._cve_index: dict[str, dict[str, Any]] = {}
 
     def _get_catalog(self) -> dict[str, Any]:
         """Fetch the full KEV catalog (cached)."""
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
 
         # Return cached if fresh
         if (
@@ -34,16 +34,17 @@ class CISAKEVClient(BaseClient):
             return self._cache
 
         # Fetch fresh catalog
-        response = self.get("/known_exploited_vulnerabilities.json")
+        response: dict[str, Any] = self.get("/known_exploited_vulnerabilities.json")
         self._cache = response
         self._cache_time = now
         # Build CVE index for O(1) lookups
         self._cve_index = {
-            vuln.get("cveID", "").upper(): vuln for vuln in response.get("vulnerabilities", [])
+            vuln.get("cveID", "").upper(): vuln
+            for vuln in response.get("vulnerabilities", [])
         }
         return response
 
-    def lookup(self, cve_id: str) -> dict[str, Any] | None:
+    def lookup(self, cve_id: str) -> Optional[dict[str, Any]]:
         """Check if a CVE is in the KEV catalog.
 
         Args:
@@ -72,14 +73,16 @@ class CISAKEVClient(BaseClient):
             List of KEV entries added within the time period
         """
         catalog = self._get_catalog()
-        cutoff = datetime.now(UTC) - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
         recent = []
         for vuln in catalog.get("vulnerabilities", []):
             date_added_str = vuln.get("dateAdded", "")
             if date_added_str:
                 try:
-                    date_added = datetime.strptime(date_added_str, "%Y-%m-%d")
+                    date_added = datetime.strptime(date_added_str, "%Y-%m-%d").replace(
+                        tzinfo=timezone.utc
+                    )
                     if date_added >= cutoff:
                         recent.append(self._parse_kev_entry(vuln))
                 except ValueError:
@@ -108,7 +111,7 @@ class CISAKEVClient(BaseClient):
 
         return matches
 
-    def _parse_kev_entry(self, entry: dict) -> dict[str, Any]:
+    def _parse_kev_entry(self, entry: dict[str, Any]) -> dict[str, Any]:
         """Parse raw KEV entry into standardized format."""
         return {
             "cve_id": entry.get("cveID", ""),

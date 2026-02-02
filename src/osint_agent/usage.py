@@ -6,9 +6,8 @@ import functools
 import logging
 import threading
 from collections import defaultdict
-from collections.abc import Callable
-from datetime import UTC, datetime
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,9 @@ class UsageTracker:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._investigation_name: str = ""
-        self._tool_calls: dict[str, dict[str, int]] = defaultdict(lambda: {"calls": 0, "errors": 0})
+        self._tool_calls: dict[str, dict[str, int]] = defaultdict(
+            lambda: {"calls": 0, "errors": 0}
+        )
         self._api_requests: dict[str, dict[str, int]] = defaultdict(
             lambda: {"calls": 0, "errors": 0}
         )
@@ -34,7 +35,7 @@ class UsageTracker:
             self._investigation_name = investigation_name
             self._tool_calls = defaultdict(lambda: {"calls": 0, "errors": 0})
             self._api_requests = defaultdict(lambda: {"calls": 0, "errors": 0})
-            self._started_at = datetime.now(UTC).isoformat()
+            self._started_at = datetime.now(timezone.utc).isoformat()
             logger.info(f"Usage tracker reset for investigation: {investigation_name}")
 
     def record_tool_call(self, tool_name: str, error: bool = False) -> None:
@@ -62,7 +63,7 @@ class UsageTracker:
             return {
                 "investigation": self._investigation_name,
                 "started_at": self._started_at,
-                "snapshot_at": datetime.now(UTC).isoformat(),
+                "snapshot_at": datetime.now(timezone.utc).isoformat(),
                 "summary": {
                     "total_tool_calls": total_tool_calls,
                     "total_tool_errors": total_tool_errors,
@@ -84,7 +85,7 @@ def get_usage_tracker() -> UsageTracker:
     return _tracker
 
 
-def track_tool(tool_name: str) -> Callable:
+def track_tool(tool_name: str) -> Callable[..., Any]:
     """Decorator to record MCP tool invocations.
 
     Place inside (below) @mcp.tool() so it wraps the function directly:
@@ -95,7 +96,7 @@ def track_tool(tool_name: str) -> Callable:
             ...
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             tracker = get_usage_tracker()

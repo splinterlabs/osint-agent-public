@@ -5,10 +5,10 @@ from __future__ import annotations
 import argparse
 import sqlite3
 import sys
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from .keymanager import KEYS, delete_api_key, print_key_status, set_api_key
+from .keymanager import delete_api_key, print_key_status, set_api_key, KEYS
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 IOC_DB_PATH = PROJECT_ROOT / "data" / "iocs.db"
@@ -34,7 +34,6 @@ def cmd_keys(args: argparse.Namespace) -> int:
             return 1
 
         import getpass
-
         value = getpass.getpass(f"Enter value for {args.key_name}: ")
 
         if set_api_key(args.key_name, value):
@@ -78,21 +77,16 @@ def cmd_iocs(args: argparse.Namespace) -> int:
             total = cursor.fetchone()[0]
             cursor.execute("SELECT type, COUNT(*) as cnt FROM iocs GROUP BY type ORDER BY cnt DESC")
             by_type = cursor.fetchall()
-            yesterday = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+            yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
             cursor.execute("SELECT COUNT(*) FROM iocs WHERE first_seen > ?", (yesterday,))
             recent = cursor.fetchone()[0]
 
             if args.format == "json":
-                print(
-                    json.dumps(
-                        {
-                            "total": total,
-                            "recent_24h": recent,
-                            "by_type": {row["type"]: row["cnt"] for row in by_type},
-                        },
-                        indent=2,
-                    )
-                )
+                print(json.dumps({
+                    "total": total,
+                    "recent_24h": recent,
+                    "by_type": {row["type"]: row["cnt"] for row in by_type},
+                }, indent=2))
             else:
                 print(f"Total IOCs: {total}")
                 print(f"Added (24h): {recent}")
@@ -118,14 +112,10 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                 if not rows:
                     print(f"No IOCs found matching '{query}'.")
                 else:
-                    print(
-                        f"{'TYPE':10s} {'VALUE':45s} {'SOURCE':20s} {'LAST SEEN':20s} {'HITS':5s}"
-                    )
+                    print(f"{'TYPE':10s} {'VALUE':45s} {'SOURCE':20s} {'LAST SEEN':20s} {'HITS':5s}")
                     print("-" * 102)
                     for r in rows:
-                        print(
-                            f"{r['type']:10s} {r['value'][:45]:45s} {(r['source'] or '')[:20]:20s} {r['last_seen'][:20]:20s} {r['hit_count']}"
-                        )
+                        print(f"{r['type']:10s} {r['value'][:45]:45s} {(r['source'] or '')[:20]:20s} {r['last_seen'][:20]:20s} {r['hit_count']}")
 
         elif action == "recent":
             limit = DEFAULT_RECENT_LIMIT
@@ -137,14 +127,10 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                 if not rows:
                     print("No IOCs in database.")
                 else:
-                    print(
-                        f"{'TYPE':10s} {'VALUE':45s} {'SOURCE':20s} {'LAST SEEN':20s} {'HITS':5s}"
-                    )
+                    print(f"{'TYPE':10s} {'VALUE':45s} {'SOURCE':20s} {'LAST SEEN':20s} {'HITS':5s}")
                     print("-" * 102)
                     for r in rows:
-                        print(
-                            f"{r['type']:10s} {r['value'][:45]:45s} {(r['source'] or '')[:20]:20s} {r['last_seen'][:20]:20s} {r['hit_count']}"
-                        )
+                        print(f"{r['type']:10s} {r['value'][:45]:45s} {(r['source'] or '')[:20]:20s} {r['last_seen'][:20]:20s} {r['hit_count']}")
 
         elif action == "filter":
             if not query:
@@ -155,10 +141,7 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                 print(f"Error: Unknown IOC type '{query}'")
                 print(f"Valid types: {', '.join(valid_types)}")
                 return 1
-            cursor.execute(
-                "SELECT * FROM iocs WHERE type = ? ORDER BY last_seen DESC LIMIT ?",
-                (query, DEFAULT_QUERY_LIMIT),
-            )
+            cursor.execute("SELECT * FROM iocs WHERE type = ? ORDER BY last_seen DESC LIMIT ?", (query, DEFAULT_QUERY_LIMIT))
             rows = cursor.fetchall()
             if args.format == "json":
                 print(json.dumps([dict(r) for r in rows], indent=2))
@@ -169,9 +152,7 @@ def cmd_iocs(args: argparse.Namespace) -> int:
                     print(f"{'VALUE':50s} {'SOURCE':20s} {'LAST SEEN':20s} {'HITS':5s}")
                     print("-" * 97)
                     for r in rows:
-                        print(
-                            f"{r['value'][:50]:50s} {(r['source'] or '')[:20]:20s} {r['last_seen'][:20]:20s} {r['hit_count']}"
-                        )
+                        print(f"{r['value'][:50]:50s} {(r['source'] or '')[:20]:20s} {r['last_seen'][:20]:20s} {r['hit_count']}")
 
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -184,11 +165,13 @@ def cmd_iocs(args: argparse.Namespace) -> int:
 
 def cmd_extract(args: argparse.Namespace) -> int:
     """Extract IOCs from file or stdin."""
+    from .extractors import extract_iocs
     import json
 
-    from .extractors import extract_iocs
-
-    content = Path(args.file).read_text() if args.file else sys.stdin.read()
+    if args.file:
+        content = Path(args.file).read_text()
+    else:
+        content = sys.stdin.read()
 
     iocs = extract_iocs(content)
 
@@ -196,7 +179,6 @@ def cmd_extract(args: argparse.Namespace) -> int:
         print(json.dumps(iocs, indent=2))
     elif args.format == "stix":
         from .stix_export import iocs_to_stix_bundle
-
         bundle = iocs_to_stix_bundle(iocs, labels=args.labels or [])
         print(bundle.to_json())
     else:
@@ -211,9 +193,8 @@ def cmd_extract(args: argparse.Namespace) -> int:
 
 def cmd_lookup(args: argparse.Namespace) -> int:
     """Look up CVE details."""
+    from .clients import NVDClient, CISAKEVClient
     import json
-
-    from .clients import CISAKEVClient, NVDClient
 
     nvd = NVDClient()
     kev = CISAKEVClient()
@@ -233,8 +214,7 @@ def cmd_lookup(args: argparse.Namespace) -> int:
     if args.format == "json":
         print(json.dumps(cve_data, indent=2))
     elif args.format == "stix":
-        from .stix_export import STIXBundle, cve_to_stix
-
+        from .stix_export import cve_to_stix, STIXBundle
         bundle = STIXBundle()
         bundle.add(cve_to_stix(cve_data))
         print(bundle.to_json())
@@ -314,7 +294,8 @@ def main() -> int:
         parser.print_help()
         return 0
 
-    return args.func(args)
+    result: int = args.func(args)
+    return result
 
 
 if __name__ == "__main__":

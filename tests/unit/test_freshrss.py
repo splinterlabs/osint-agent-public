@@ -3,8 +3,8 @@
 import pytest
 import responses
 
-from osint_agent.clients.base import APIError
 from osint_agent.clients.freshrss import FreshRSSClient
+from osint_agent.clients.base import APIError
 
 
 class TestFreshRSSAuthentication:
@@ -24,10 +24,12 @@ class TestFreshRSSAuthentication:
             username="testuser",
             password="testpass",
         )
-        token = client.authenticate()
+        result = client.authenticate()
 
-        assert token == "test_auth_token"
+        assert result is True
         assert client._auth_token == "test_auth_token"
+        # Password cleared from memory after successful auth
+        assert client._password is None
 
     @responses.activate
     def test_authenticate_failure(self):
@@ -100,7 +102,9 @@ class TestFreshRSSSubscriptions:
                         "url": "https://security.example.com/feed",
                         "htmlUrl": "https://security.example.com",
                         "iconUrl": "https://security.example.com/icon.png",
-                        "categories": [{"id": "cat/1", "label": "Security"}],
+                        "categories": [
+                            {"id": "cat/1", "label": "Security"}
+                        ],
                     },
                     {
                         "id": "feed/2",
