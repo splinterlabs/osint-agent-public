@@ -14,7 +14,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from filelock import FileLock
 
@@ -53,7 +53,7 @@ class CampaignIOC:
     tags: list[str] = field(default_factory=list)
     notes: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "ioc_type": self.ioc_type,
@@ -67,7 +67,7 @@ class CampaignIOC:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "CampaignIOC":
+    def from_dict(cls, data: dict[str, Any]) -> "CampaignIOC":
         """Create from dictionary."""
         return cls(
             ioc_type=data["ioc_type"],
@@ -92,7 +92,7 @@ class CampaignTTP:
     evidence: str
     confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "technique_id": self.technique_id,
@@ -104,7 +104,7 @@ class CampaignTTP:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "CampaignTTP":
+    def from_dict(cls, data: dict[str, Any]) -> "CampaignTTP":
         """Create from dictionary."""
         return cls(
             technique_id=data["technique_id"],
@@ -138,7 +138,7 @@ class Campaign:
     tags: list[str] = field(default_factory=list)
     notes: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "id": self.id,
@@ -161,7 +161,7 @@ class Campaign:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Campaign":
+    def from_dict(cls, data: dict[str, Any]) -> "Campaign":
         """Create from dictionary."""
         return cls(
             id=data["id"],
@@ -502,7 +502,7 @@ class CampaignManager:
             return True
         return False
 
-    def find_by_ioc(self, ioc_type: str, value: str) -> list[Campaign]:
+    def find_by_ioc(self, ioc_type: str, value: str) -> List[Campaign]:
         """Find campaigns containing an IOC.
 
         Uses index for O(1) lookup instead of scanning all campaigns.
@@ -518,7 +518,7 @@ class CampaignManager:
         campaign_ids = self._ioc_index.get(key, set())
         return [self._campaigns[cid] for cid in campaign_ids if cid in self._campaigns]
 
-    def find_by_ttp(self, technique_id: str) -> list[Campaign]:
+    def find_by_ttp(self, technique_id: str) -> List[Campaign]:
         """Find campaigns using a technique.
 
         Uses index for O(1) lookup instead of scanning all campaigns.
@@ -532,7 +532,7 @@ class CampaignManager:
         campaign_ids = self._ttp_index.get(technique_id, set())
         return [self._campaigns[cid] for cid in campaign_ids if cid in self._campaigns]
 
-    def find_by_cve(self, cve_id: str) -> list[Campaign]:
+    def find_by_cve(self, cve_id: str) -> List[Campaign]:
         """Find campaigns exploiting a CVE.
 
         Uses index for O(1) lookup instead of scanning all campaigns.
@@ -549,7 +549,7 @@ class CampaignManager:
     def get_statistics(self) -> dict[str, Any]:
         """Get campaign statistics."""
         total = len(self._campaigns)
-        by_status = {}
+        by_status: dict[str, int] = {}
         total_iocs = 0
         total_ttps = 0
 

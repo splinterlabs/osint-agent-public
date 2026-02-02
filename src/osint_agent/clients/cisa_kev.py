@@ -14,12 +14,12 @@ class CISAKEVClient(BaseClient):
     BASE_URL = "https://www.cisa.gov/sites/default/files/feeds"
     DEFAULT_TIMEOUT = 30
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self._cache: Optional[dict] = None
+        self._cache: Optional[dict[str, Any]] = None
         self._cache_time: Optional[datetime] = None
         self._cache_ttl = timedelta(hours=1)
-        self._cve_index: dict[str, dict] = {}
+        self._cve_index: dict[str, dict[str, Any]] = {}
 
     def _get_catalog(self) -> dict[str, Any]:
         """Fetch the full KEV catalog (cached)."""
@@ -34,7 +34,7 @@ class CISAKEVClient(BaseClient):
             return self._cache
 
         # Fetch fresh catalog
-        response = self.get("/known_exploited_vulnerabilities.json")
+        response: dict[str, Any] = self.get("/known_exploited_vulnerabilities.json")
         self._cache = response
         self._cache_time = now
         # Build CVE index for O(1) lookups
@@ -111,7 +111,7 @@ class CISAKEVClient(BaseClient):
 
         return matches
 
-    def _parse_kev_entry(self, entry: dict) -> dict[str, Any]:
+    def _parse_kev_entry(self, entry: dict[str, Any]) -> dict[str, Any]:
         """Parse raw KEV entry into standardized format."""
         return {
             "cve_id": entry.get("cveID", ""),

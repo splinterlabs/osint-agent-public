@@ -294,7 +294,8 @@ def main() -> int:
         parser.print_help()
         return 0
 
-    return args.func(args)
+    result: int = args.func(args)
+    return result
 
 
 if __name__ == "__main__":

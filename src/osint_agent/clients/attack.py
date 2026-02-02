@@ -45,12 +45,12 @@ class ATTACKClient(BaseClient):
         super().__init__(timeout=timeout or 60, proxy=proxy)
         self.cache_dir = cache_dir or Path("data/cache/attack")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self._data: Optional[dict] = None
-        self._techniques: dict[str, dict] = {}
-        self._tactics: dict[str, dict] = {}
-        self._groups: dict[str, dict] = {}
-        self._mitigations: dict[str, dict] = {}
-        self._software: dict[str, dict] = {}
+        self._data: Optional[dict[str, Any]] = None
+        self._techniques: dict[str, dict[str, Any]] = {}
+        self._tactics: dict[str, dict[str, Any]] = {}
+        self._groups: dict[str, dict[str, Any]] = {}
+        self._mitigations: dict[str, dict[str, Any]] = {}
+        self._software: dict[str, dict[str, Any]] = {}
 
     def _get_cache_path(self) -> Path:
         """Get path to cached ATT&CK data."""
@@ -64,7 +64,7 @@ class ATTACKClient(BaseClient):
         mtime = datetime.fromtimestamp(cache_path.stat().st_mtime)
         return datetime.now() - mtime < timedelta(hours=self.CACHE_TTL_HOURS)
 
-    def _load_data(self) -> dict:
+    def _load_data(self) -> dict[str, Any]:
         """Load ATT&CK data from cache or fetch from source."""
         if self._data:
             return self._data
@@ -75,9 +75,10 @@ class ATTACKClient(BaseClient):
         if self._is_cache_valid():
             try:
                 with open(cache_path) as f:
-                    self._data = json.load(f)
+                    data: dict[str, Any] = json.load(f)
+                    self._data = data
                     self._index_data()
-                    return self._data
+                    return data
             except (json.JSONDecodeError, IOError) as e:
                 logger.warning(f"Cache read failed: {e}")
 
@@ -99,6 +100,8 @@ class ATTACKClient(BaseClient):
             logger.warning(f"Cache write failed: {e}")
 
         self._index_data()
+        # At this point _data is guaranteed to be set
+        assert self._data is not None
         return self._data
 
     def _index_data(self) -> None:
@@ -318,6 +321,10 @@ class ATTACKClient(BaseClient):
         self._load_data()
         query_lower = query.lower()
         results = []
+
+        # _load_data() ensures _data is not None
+        if not self._data:
+            return []
 
         for obj in self._data.get("objects", []):
             if obj.get("type") != "attack-pattern":

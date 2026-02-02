@@ -63,7 +63,7 @@ class NVDClient(BaseClient):
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=days)
 
-        base_params = {
+        base_params: dict[str, Any] = {
             "pubStartDate": start_date.strftime("%Y-%m-%dT00:00:00.000"),
             "pubEndDate": end_date.strftime("%Y-%m-%dT23:59:59.999"),
             "resultsPerPage": max_results,
@@ -146,7 +146,7 @@ class NVDClient(BaseClient):
         cves.sort(key=lambda x: x.get("cvss_v3_score", 0), reverse=True)
         return cves
 
-    def _parse_cve(self, cve_data: dict) -> dict[str, Any]:
+    def _parse_cve(self, cve_data: dict[str, Any]) -> dict[str, Any]:
         """Parse raw CVE data into standardized format."""
         cve_id = cve_data.get("id", "")
 

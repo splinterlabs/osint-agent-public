@@ -171,7 +171,7 @@ class OTXClient(BaseClient):
             List of pulses from subscriptions
         """
         endpoint = "/pulses/subscribed"
-        params = {"limit": max_results}
+        params: dict[str, Any] = {"limit": max_results}
         if modified_since:
             params["modified_since"] = modified_since
 
@@ -200,7 +200,7 @@ class OTXClient(BaseClient):
 
     def _parse_indicator(
         self,
-        response: dict,
+        response: dict[str, Any],
         indicator_type: str,
         indicator: str,
     ) -> dict[str, Any]:
@@ -231,7 +231,7 @@ class OTXClient(BaseClient):
             "country_name": response.get("country_name"),
         }
 
-    def _parse_pulse(self, pulse: dict) -> dict[str, Any]:
+    def _parse_pulse(self, pulse: dict[str, Any]) -> dict[str, Any]:
         """Parse pulse data into standardized format."""
         indicators = pulse.get("indicators", [])
 
