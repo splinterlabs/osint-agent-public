@@ -51,7 +51,7 @@ class ContextManager:
 
         try:
             with open(path) as f:
-                data = json.load(f)
+                data: dict[str, Any] = json.load(f)
                 self._cache[tier] = data
                 return data
         except (json.JSONDecodeError, OSError) as e:

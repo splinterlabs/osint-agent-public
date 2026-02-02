@@ -212,7 +212,7 @@ def validate_hash(hash_value: str, hash_type: str) -> bool:
     return True
 
 
-def _run_with_timeout(func, timeout_seconds: int):
+def _run_with_timeout(func: Callable[[], Any], timeout_seconds: int) -> Any:
     """Run a function with timeout protection (cross-platform).
 
     Uses ThreadPoolExecutor for cross-platform timeout support.
@@ -314,10 +314,11 @@ def extract_iocs(content: str) -> dict[str, list[str]]:
         content = content[:MAX_CONTENT_LENGTH]
 
     try:
-        return _run_with_timeout(
+        result: dict[str, list[str]] = _run_with_timeout(
             lambda: _extract_iocs_internal(content),
             EXTRACTION_TIMEOUT_SECONDS,
         )
+        return result
     except TimeoutError:
         logger.error("IOC extraction timed out - possible ReDoS attempt")
         return {}
