@@ -26,19 +26,40 @@ A threat intelligence assistant for [Claude Code](https://claude.ai/code) with C
 
 ## Quick Start
 
+Get running in under 5 minutes:
+
 ```bash
 # Clone the repository
 git clone https://github.com/splinterlabs/osint-agent-public.git
 cd osint-agent
 
-# Run setup
-./setup.sh
+# One-command setup (2-3 minutes)
+make init
 
 # Verify installation
-make verify
+make validate
 ```
 
-See [INSTALL.md](INSTALL.md) for detailed installation instructions.
+**What `make init` does:**
+- ✅ Verifies Python 3.11+ and dependencies
+- ✅ Creates virtual environment
+- ✅ Installs OSINT Agent and all dependencies
+- ✅ Initializes databases (IOCs and rate limits)
+- ✅ Creates required directories
+
+**Start using immediately:**
+
+```bash
+# Via Claude Code (recommended)
+claude
+# Then use slash commands: /intel, /investigate, /cve, etc.
+
+# Via CLI
+source .venv/bin/activate
+python -m osint_agent.cli intel
+```
+
+See [INSTALL.md](INSTALL.md) for detailed installation, configuration, and troubleshooting.
 
 ## Usage
 
@@ -188,6 +209,8 @@ make check
 make format
 ```
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development setup, testing patterns, and contribution guidelines.
+
 ## Use Cases
 
 See [USE_CASES.md](USE_CASES.md) for detailed workflows:
@@ -215,12 +238,22 @@ See [USE_CASES.md](USE_CASES.md) for detailed workflows:
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run checks (`make check`)
-4. Commit changes (`git commit -m 'Add amazing feature'`)
-5. Push to branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
+
+- Development setup and workflow
+- Testing guidelines and patterns
+- Code style requirements
+- How to add new features
+- Pull request process
+
+Quick start for contributors:
+
+```bash
+git clone https://github.com/splinterlabs/osint-agent-public.git
+cd osint-agent
+make init
+make test
+```
 
 ## License
 
