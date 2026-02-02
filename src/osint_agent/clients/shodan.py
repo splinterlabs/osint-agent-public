@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from .base import BaseClient, ProxyConfig
 
@@ -25,8 +25,8 @@ class ShodanClient(BaseClient):
     def __init__(
         self,
         api_key: str,
-        timeout: int | None = None,
-        proxy: ProxyConfig | None = None,
+        timeout: Optional[int] = None,
+        proxy: Optional[ProxyConfig] = None,
     ):
         """Initialize Shodan client.
 
@@ -43,7 +43,7 @@ class ShodanClient(BaseClient):
         """Get headers for Shodan API requests."""
         return {}
 
-    def _add_key(self, params: dict | None = None) -> dict:
+    def _add_key(self, params: Optional[dict[str, Any]] = None) -> dict[str, Any]:
         """Add API key to request parameters."""
         params = params or {}
         params["key"] = self.api_key
@@ -79,7 +79,7 @@ class ShodanClient(BaseClient):
         result = self.get(f"/shodan/host/{ip}", params=params)
         return self._parse_host(result)
 
-    def _parse_host(self, data: dict) -> dict[str, Any]:
+    def _parse_host(self, data: dict[str, Any]) -> dict[str, Any]:
         """Parse host response into standardized format."""
         # Extract vulnerabilities from service data
         vulns = set()
@@ -119,7 +119,7 @@ class ShodanClient(BaseClient):
         query: str,
         page: int = 1,
         limit: int = 100,
-        facets: list[str] | None = None,
+        facets: Optional[list[str]] = None,
     ) -> dict[str, Any]:
         """Search Shodan for hosts matching a query.
 
@@ -163,7 +163,7 @@ class ShodanClient(BaseClient):
             "facets": result.get("facets", {}),
         }
 
-    def search_count(self, query: str, facets: list[str] | None = None) -> dict[str, Any]:
+    def search_count(self, query: str, facets: Optional[list[str]] = None) -> dict[str, Any]:
         """Get the number of results for a search query (without results).
 
         This is faster and doesn't consume query credits.
@@ -185,7 +185,7 @@ class ShodanClient(BaseClient):
             "facets": result.get("facets", {}),
         }
 
-    def resolve(self, hostnames: list[str]) -> dict[str, str | None]:
+    def resolve(self, hostnames: list[str]) -> dict[str, Optional[str]]:
         """Resolve hostnames to IP addresses.
 
         Args:
@@ -195,7 +195,8 @@ class ShodanClient(BaseClient):
             Dictionary mapping hostnames to IP addresses
         """
         params = self._add_key({"hostnames": ",".join(hostnames[:100])})
-        return self.get("/dns/resolve", params=params)
+        result: dict[str, Optional[str]] = self.get("/dns/resolve", params=params)
+        return result
 
     def reverse(self, ips: list[str]) -> dict[str, list[str]]:
         """Reverse DNS lookup for IP addresses.
@@ -207,7 +208,8 @@ class ShodanClient(BaseClient):
             Dictionary mapping IPs to lists of hostnames
         """
         params = self._add_key({"ips": ",".join(ips[:100])})
-        return self.get("/dns/reverse", params=params)
+        result: dict[str, list[str]] = self.get("/dns/reverse", params=params)
+        return result
 
     def domain(self, domain: str) -> dict[str, Any]:
         """Get DNS information for a domain.
@@ -272,7 +274,8 @@ class ShodanClient(BaseClient):
             API plan details including credits remaining
         """
         params = self._add_key()
-        return self.get("/api-info", params=params)
+        result: dict[str, Any] = self.get("/api-info", params=params)
+        return result
 
     def vulnerabilities(self, cve_id: str) -> dict[str, Any]:
         """Get detailed vulnerability information.

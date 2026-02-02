@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from osint_agent.stix_export import (
     STIXBundle,
     create_domain_observable,

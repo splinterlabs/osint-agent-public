@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from .base import BaseClient
 
@@ -17,12 +17,11 @@ class AbuseCHClient(BaseClient):
             headers["Auth-Key"] = self.api_key
         return headers
 
-
 # Maximum related URLs/items returned in list responses
 MAX_RELATED_ITEMS = 20
 
 
-def _check_query_status(response: dict) -> dict[str, Any] | None:
+def _check_query_status(response: dict[str, Any]) -> dict[str, Any] | None:
     """Check abuse.ch query_status field. Returns error dict if not ok, None if ok."""
     if response.get("query_status") != "ok":
         return {"found": False, "status": response.get("query_status")}
@@ -42,8 +41,10 @@ class URLhausClient(AbuseCHClient):
     DEFAULT_TIMEOUT = 30
     CACHE_TTL_HOURS = 4
 
-    def _should_cache(self, method, endpoint, params=None, json_data=None, form_data=None):
-        return "/recent" not in endpoint
+    def _should_cache(self, method: str, endpoint: str, params: Any = None, json_data: Any = None, form_data: Any = None) -> bool:
+        if "/recent" in endpoint:
+            return False
+        return True
 
     def lookup_url(self, url: str) -> dict[str, Any]:
         """Look up a URL in URLhaus.
@@ -103,7 +104,7 @@ class URLhausClient(AbuseCHClient):
 
         return urls
 
-    def _parse_url_response(self, response: dict) -> dict[str, Any]:
+    def _parse_url_response(self, response: dict[str, Any]) -> dict[str, Any]:
         """Parse URL lookup response."""
         if error := _check_query_status(response):
             return error
@@ -130,7 +131,7 @@ class URLhausClient(AbuseCHClient):
             ],
         }
 
-    def _parse_host_response(self, response: dict) -> dict[str, Any]:
+    def _parse_host_response(self, response: dict[str, Any]) -> dict[str, Any]:
         """Parse host lookup response."""
         if error := _check_query_status(response):
             return error
@@ -145,7 +146,7 @@ class URLhausClient(AbuseCHClient):
             ],
         }
 
-    def _parse_payload_response(self, response: dict) -> dict[str, Any]:
+    def _parse_payload_response(self, response: dict[str, Any]) -> dict[str, Any]:
         """Parse payload lookup response."""
         if error := _check_query_status(response):
             return error
@@ -170,7 +171,7 @@ class URLhausClient(AbuseCHClient):
             ],
         }
 
-    def _parse_url_entry(self, entry: dict) -> dict[str, Any]:
+    def _parse_url_entry(self, entry: dict[str, Any]) -> dict[str, Any]:
         """Parse a single URL entry."""
         return {
             "url": entry.get("url"),
@@ -195,8 +196,10 @@ class MalwareBazaarClient(AbuseCHClient):
     DEFAULT_TIMEOUT = 30
     CACHE_TTL_HOURS = 4
 
-    def _should_cache(self, method, endpoint, params=None, json_data=None, form_data=None):
-        return not (form_data and form_data.get("query") == "get_recent")
+    def _should_cache(self, method: str, endpoint: str, params: Any = None, json_data: Any = None, form_data: Any = None) -> bool:
+        if form_data and form_data.get("query") == "get_recent":
+            return False
+        return True
 
     def lookup_hash(self, hash_value: str) -> dict[str, Any]:
         """Look up a malware sample by hash.
@@ -257,7 +260,7 @@ class MalwareBazaarClient(AbuseCHClient):
         )
         return self._parse_sample_list(response)
 
-    def _parse_sample_response(self, response: dict) -> dict[str, Any]:
+    def _parse_sample_response(self, response: dict[str, Any]) -> dict[str, Any]:
         """Parse single sample lookup response."""
         if error := _check_query_status(response):
             return error
@@ -287,7 +290,7 @@ class MalwareBazaarClient(AbuseCHClient):
             "comment": data.get("comment"),
         }
 
-    def _parse_sample_list(self, response: dict) -> list[dict[str, Any]]:
+    def _parse_sample_list(self, response: dict[str, Any]) -> list[dict[str, Any]]:
         """Parse sample list response."""
         if _check_query_status(response):
             return []
@@ -323,8 +326,10 @@ class ThreatFoxClient(AbuseCHClient):
     DEFAULT_TIMEOUT = 30
     CACHE_TTL_HOURS = 4
 
-    def _should_cache(self, method, endpoint, params=None, json_data=None, form_data=None):
-        return not (json_data and json_data.get("query") == "get_iocs")
+    def _should_cache(self, method: str, endpoint: str, params: Any = None, json_data: Any = None, form_data: Any = None) -> bool:
+        if json_data and json_data.get("query") == "get_iocs":
+            return False
+        return True
 
     def lookup_ioc(self, ioc: str) -> dict[str, Any]:
         """Look up an IOC in ThreatFox.
@@ -385,7 +390,7 @@ class ThreatFoxClient(AbuseCHClient):
         )
         return self._parse_ioc_list(response)
 
-    def _parse_ioc_response(self, response: dict) -> dict[str, Any]:
+    def _parse_ioc_response(self, response: dict[str, Any]) -> dict[str, Any]:
         """Parse single IOC lookup response."""
         if error := _check_query_status(response):
             return error
@@ -409,7 +414,7 @@ class ThreatFoxClient(AbuseCHClient):
             "reference": data.get("reference"),
         }
 
-    def _parse_ioc_list(self, response: dict) -> list[dict[str, Any]]:
+    def _parse_ioc_list(self, response: dict[str, Any]) -> list[dict[str, Any]]:
         """Parse IOC list response."""
         if _check_query_status(response):
             return []

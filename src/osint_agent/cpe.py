@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any, Optional
 
 
 @dataclass
@@ -17,9 +18,9 @@ class CPEMatch:
     matched: bool
     pattern: str
     cpe: str
-    vendor: str | None = None
-    product: str | None = None
-    version: str | None = None
+    vendor: Optional[str] = None
+    product: Optional[str] = None
+    version: Optional[str] = None
 
 
 def parse_cpe23(cpe: str) -> dict[str, str]:
@@ -97,7 +98,7 @@ def parse_cpe22(cpe: str) -> dict[str, str]:
 
     # First character is the part (a=application, o=os, h=hardware)
     part = parts[0][0] if parts[0] else ""
-    parts[0][1:] if len(parts[0]) > 1 else (parts[1] if len(parts) > 1 else "")
+    vendor = parts[0][1:] if len(parts[0]) > 1 else (parts[1] if len(parts) > 1 else "")
 
     component_names = ["vendor", "product", "version", "update", "edition", "language"]
     result = {"part": part}
@@ -179,7 +180,7 @@ def match_cpe_pattern(cpe: str, pattern: str) -> CPEMatch:
 
 def match_vendor_product(
     cpe: str, vendors: list[str], products: list[str]
-) -> tuple[bool, str | None, str | None]:
+) -> tuple[bool, Optional[str], Optional[str]]:
     """Check if CPE matches any vendor or product in lists.
 
     Args:
@@ -221,7 +222,7 @@ def match_vendor_product(
 class WatchlistMatcher:
     """Matches CVE data against watchlist configuration."""
 
-    def __init__(self, watchlist: dict):
+    def __init__(self, watchlist: dict[str, Any]):
         """Initialize matcher with watchlist config.
 
         Args:
@@ -232,7 +233,7 @@ class WatchlistMatcher:
         self.cpe_patterns = watchlist.get("cpe_patterns", [])
         self.keywords = [k.lower() for k in watchlist.get("keywords", [])]
 
-    def match_cve(self, cve_data: dict) -> dict:
+    def match_cve(self, cve_data: dict[str, Any]) -> dict[str, Any]:
         """Check if CVE matches watchlist criteria.
 
         Args:
@@ -241,7 +242,7 @@ class WatchlistMatcher:
         Returns:
             Match result with details
         """
-        matches = {
+        matches: dict[str, Any] = {
             "matched": False,
             "vendor_matches": [],
             "product_matches": [],
@@ -310,7 +311,9 @@ class WatchlistMatcher:
                     results.append(match)
 
             # Also check vendor/product lists
-            matched, vendor, product = match_vendor_product(cpe, self.vendors, self.products)
+            matched, vendor, product = match_vendor_product(
+                cpe, self.vendors, self.products
+            )
             if matched:
                 parts = parse_cpe23(cpe)
                 results.append(

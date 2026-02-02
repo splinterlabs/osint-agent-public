@@ -1,6 +1,7 @@
 """Unit tests for TTL-based file cache."""
 
 import json
+import time
 from datetime import datetime, timedelta
 
 import pytest
@@ -110,14 +111,10 @@ class TestCacheStaleness:
         # Manually write a cache entry with old timestamp
         path = cache._cache_path("old_key")
         old_time = datetime.now() - timedelta(hours=2)
-        path.write_text(
-            json.dumps(
-                {
-                    "value": "old_data",
-                    "cached_at": old_time.isoformat(),
-                }
-            )
-        )
+        path.write_text(json.dumps({
+            "value": "old_data",
+            "cached_at": old_time.isoformat(),
+        }))
         assert cache.is_stale("old_key") is True
 
     def test_corrupted_file_is_stale(self, cache):
@@ -218,14 +215,10 @@ class TestCacheGetOrFetch:
         # Write old entry
         path = cache._cache_path("stale_key")
         old_time = datetime.now() - timedelta(hours=2)
-        path.write_text(
-            json.dumps(
-                {
-                    "value": "old",
-                    "cached_at": old_time.isoformat(),
-                }
-            )
-        )
+        path.write_text(json.dumps({
+            "value": "old",
+            "cached_at": old_time.isoformat(),
+        }))
 
         result = cache.get_or_fetch("stale_key", lambda: "fresh")
         assert result == "fresh"

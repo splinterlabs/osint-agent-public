@@ -11,9 +11,9 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from osint_agent.parallel import get_workers, parallel_collect_sets
 
@@ -34,9 +34,10 @@ def _load_behavior_techniques() -> dict[str, list[str]]:
         if config_path.exists():
             try:
                 with open(config_path) as f:
-                    data = json.load(f)
-                    return data.get("patterns", {})
-            except (OSError, json.JSONDecodeError) as e:
+                    data: dict[str, Any] = json.load(f)
+                    result: dict[str, list[str]] = data.get("patterns", {})
+                    return result
+            except (json.JSONDecodeError, IOError) as e:
                 logger.warning(f"Failed to load behavior techniques config: {e}")
 
     logger.warning("Behavior techniques config not found, using empty mappings")
@@ -50,13 +51,13 @@ class CorrelationResult:
     ioc_type: str
     ioc_value: str
     sources: list[str] = field(default_factory=list)
-    related_iocs: list[dict] = field(default_factory=list)
+    related_iocs: list[dict[str, Any]] = field(default_factory=list)
     campaigns: list[str] = field(default_factory=list)
     techniques: list[str] = field(default_factory=list)
     threat_actors: list[str] = field(default_factory=list)
     confidence: float = 0.0
-    first_seen: str | None = None
-    last_seen: str | None = None
+    first_seen: Optional[str] = None
+    last_seen: Optional[str] = None
     tags: list[str] = field(default_factory=list)
 
 
@@ -67,9 +68,9 @@ class ClusterResult:
     cluster_id: str
     primary_indicator: str
     indicator_type: str
-    members: list[dict] = field(default_factory=list)
+    members: list[dict[str, Any]] = field(default_factory=list)
     common_sources: list[str] = field(default_factory=list)
-    time_window: tuple[str, str] | None = None
+    time_window: Optional[tuple[str, str]] = None
     confidence: float = 0.0
 
 
@@ -97,7 +98,7 @@ class CorrelationEngine:
     }
 
     # Behavioral patterns mapped to techniques - loaded from config
-    _behavior_techniques: dict[str, list[str]] | None = None
+    _behavior_techniques: Optional[dict[str, list[str]]] = None
 
     @classmethod
     def get_behavior_techniques(cls) -> dict[str, list[str]]:
@@ -111,7 +112,7 @@ class CorrelationEngine:
         """Force reload of behavior techniques from config."""
         cls._behavior_techniques = _load_behavior_techniques()
 
-    def __init__(self, campaign_manager=None, attack_client=None):
+    def __init__(self, campaign_manager: Any = None, attack_client: Any = None) -> None:
         """Initialize correlation engine.
 
         Args:
@@ -120,15 +121,15 @@ class CorrelationEngine:
         """
         self.campaign_manager = campaign_manager
         self.attack_client = attack_client
-        self._ioc_index: dict[str, list[dict]] = defaultdict(list)
+        self._ioc_index: dict[str, list[dict[str, Any]]] = defaultdict(list)
 
     def index_ioc(
         self,
         ioc_type: str,
         value: str,
         source: str,
-        timestamp: str | None = None,
-        metadata: dict | None = None,
+        timestamp: Optional[str] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> None:
         """Add IOC to correlation index.
 
@@ -145,7 +146,7 @@ class CorrelationEngine:
                 "type": ioc_type,
                 "value": value,
                 "source": source,
-                "timestamp": timestamp or datetime.now(UTC).isoformat(),
+                "timestamp": timestamp or datetime.now(timezone.utc).isoformat(),
                 "metadata": metadata or {},
             }
         )
@@ -165,7 +166,7 @@ class CorrelationEngine:
 
         # Get all sightings of this IOC
         sightings = self._ioc_index.get(key, [])
-        result.sources = list({s["source"] for s in sightings})
+        result.sources = list(set(s["source"] for s in sightings))
 
         if sightings:
             timestamps = [s["timestamp"] for s in sightings if s.get("timestamp")]
@@ -190,10 +191,12 @@ class CorrelationEngine:
 
         return result
 
-    def _find_related_iocs(self, ioc_type: str, value: str, sightings: list[dict]) -> list[dict]:
+    def _find_related_iocs(
+        self, ioc_type: str, value: str, sightings: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Find IOCs that appear alongside the given IOC."""
         related = []
-        sources = {s["source"] for s in sightings}
+        sources = set(s["source"] for s in sightings)
 
         for key, entries in self._ioc_index.items():
             if key == f"{ioc_type}:{value}":
@@ -212,9 +215,11 @@ class CorrelationEngine:
                     )
                     break
 
-        return related[: self.MAX_RELATED_IOCS]
+        return related[:self.MAX_RELATED_IOCS]
 
-    def _calculate_confidence(self, sightings: list[dict], result: CorrelationResult) -> float:
+    def _calculate_confidence(
+        self, sightings: list[dict[str, Any]], result: CorrelationResult
+    ) -> float:
         """Calculate confidence score for correlation."""
         score = 0.0
 
@@ -233,7 +238,7 @@ class CorrelationEngine:
 
         return min(score, 1.0)
 
-    def map_behavior_to_techniques(self, text: str) -> list[dict]:
+    def map_behavior_to_techniques(self, text: str) -> list[dict[str, Any]]:
         """Map behavioral description to ATT&CK techniques.
 
         Args:
@@ -255,10 +260,7 @@ class CorrelationEngine:
         for technique_id, score in sorted(
             technique_matches.items(), key=lambda x: x[1], reverse=True
         ):
-            technique_info = {
-                "id": technique_id,
-                "confidence": min(score / self.BEHAVIOR_MATCH_DIVISOR, 1.0),
-            }
+            technique_info = {"id": technique_id, "confidence": min(score / self.BEHAVIOR_MATCH_DIVISOR, 1.0)}
 
             # Get full technique info if client available
             if self.attack_client:
@@ -269,11 +271,11 @@ class CorrelationEngine:
 
             results.append(technique_info)
 
-        return results[: self.MAX_TECHNIQUE_RESULTS]
+        return results[:self.MAX_TECHNIQUE_RESULTS]
 
     def cluster_iocs(
         self,
-        iocs: list[dict],
+        iocs: list[dict[str, Any]],
         time_window_minutes: int = 60,
         min_cluster_size: int = 2,
     ) -> list[ClusterResult]:
@@ -293,7 +295,7 @@ class CorrelationEngine:
         processed = set()
 
         # Group by source first
-        by_source: dict[str, list[dict]] = defaultdict(list)
+        by_source: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for ioc in iocs:
             by_source[ioc.get("source", "unknown")].append(ioc)
 
@@ -305,8 +307,8 @@ class CorrelationEngine:
                 key=lambda x: x.get("timestamp", ""),
             )
 
-            current_cluster: list[dict] = []
-            cluster_start: datetime | None = None
+            current_cluster: list[dict[str, Any]] = []
+            cluster_start: Optional[datetime] = None
 
             for ioc in sorted_iocs:
                 ioc_key = f"{ioc['type']}:{ioc['value']}"
@@ -342,7 +344,7 @@ class CorrelationEngine:
 
         return clusters
 
-    def _create_cluster(self, iocs: list[dict], source: str) -> ClusterResult:
+    def _create_cluster(self, iocs: list[dict[str, Any]], source: str) -> ClusterResult:
         """Create cluster from IOC list."""
         import uuid
 
@@ -354,8 +356,8 @@ class CorrelationEngine:
         primary_type = max(type_counts.items(), key=lambda x: x[1])[0]
         primary_ioc = next(i for i in iocs if i["type"] == primary_type)
 
-        timestamps = [i.get("timestamp") for i in iocs if i.get("timestamp")]
-        time_window = (min(timestamps), max(timestamps)) if timestamps else None
+        timestamps = [str(i.get("timestamp")) for i in iocs if i.get("timestamp")]
+        time_window: Optional[tuple[str, str]] = (min(timestamps), max(timestamps)) if timestamps else None
 
         return ClusterResult(
             cluster_id=str(uuid.uuid4())[:8],
@@ -386,7 +388,9 @@ class CorrelationEngine:
 
         return dict(results)
 
-    def correlate_campaign_iocs(self, campaign_id: str) -> dict[str, Any]:
+    def correlate_campaign_iocs(
+        self, campaign_id: str
+    ) -> dict[str, Any]:
         """Perform deep correlation analysis on campaign IOCs.
 
         Args:

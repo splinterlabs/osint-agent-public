@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from typing import Any, Optional
+
 import logging
-from typing import Any
 
 from ..keymanager import get_api_key
 from .base import BaseClient
@@ -24,7 +25,7 @@ class OTXClient(BaseClient):
     DEFAULT_TIMEOUT = 30
     CACHE_TTL_HOURS = 4
 
-    def __init__(self, api_key: str | None = None):
+    def __init__(self, api_key: Optional[str] = None):
         key = api_key or get_api_key("OTX_API_KEY")
         super().__init__(api_key=key)
 
@@ -86,21 +87,31 @@ class OTXClient(BaseClient):
         if indicator_type in ("ipv4", "ipv6"):
             try:
                 result["geo"] = self.get_indicator(indicator_type, indicator, "geo")
-                result["reputation"] = self.get_indicator(indicator_type, indicator, "reputation")
-                result["passive_dns"] = self.get_indicator(indicator_type, indicator, "passive_dns")
+                result["reputation"] = self.get_indicator(
+                    indicator_type, indicator, "reputation"
+                )
+                result["passive_dns"] = self.get_indicator(
+                    indicator_type, indicator, "passive_dns"
+                )
             except Exception as e:
                 logger.warning("Failed to fetch IP enrichment for %s: %s", indicator, e)
 
         elif indicator_type == "domain":
             try:
-                result["passive_dns"] = self.get_indicator(indicator_type, indicator, "passive_dns")
-                result["url_list"] = self.get_indicator(indicator_type, indicator, "url_list")
+                result["passive_dns"] = self.get_indicator(
+                    indicator_type, indicator, "passive_dns"
+                )
+                result["url_list"] = self.get_indicator(
+                    indicator_type, indicator, "url_list"
+                )
             except Exception as e:
                 logger.warning("Failed to fetch domain enrichment for %s: %s", indicator, e)
 
         elif indicator_type in ("md5", "sha1", "sha256"):
             try:
-                result["malware"] = self.get_indicator(indicator_type, indicator, "analysis")
+                result["malware"] = self.get_indicator(
+                    indicator_type, indicator, "analysis"
+                )
             except Exception as e:
                 logger.warning("Failed to fetch file analysis for %s: %s", indicator, e)
 
@@ -147,7 +158,7 @@ class OTXClient(BaseClient):
 
     def get_subscribed_pulses(
         self,
-        modified_since: str | None = None,
+        modified_since: Optional[str] = None,
         max_results: int = 50,
     ) -> list[dict[str, Any]]:
         """Get pulses from subscribed feeds.
@@ -160,7 +171,7 @@ class OTXClient(BaseClient):
             List of pulses from subscriptions
         """
         endpoint = "/pulses/subscribed"
-        params = {"limit": max_results}
+        params: dict[str, Any] = {"limit": max_results}
         if modified_since:
             params["modified_since"] = modified_since
 
@@ -189,7 +200,7 @@ class OTXClient(BaseClient):
 
     def _parse_indicator(
         self,
-        response: dict,
+        response: dict[str, Any],
         indicator_type: str,
         indicator: str,
     ) -> dict[str, Any]:
@@ -220,7 +231,7 @@ class OTXClient(BaseClient):
             "country_name": response.get("country_name"),
         }
 
-    def _parse_pulse(self, pulse: dict) -> dict[str, Any]:
+    def _parse_pulse(self, pulse: dict[str, Any]) -> dict[str, Any]:
         """Parse pulse data into standardized format."""
         indicators = pulse.get("indicators", [])
 

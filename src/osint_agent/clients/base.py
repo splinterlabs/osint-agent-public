@@ -4,12 +4,26 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
-from typing import Any
+from typing import Any, Optional
 
 import requests
 
 logger = logging.getLogger(__name__)
+
+# Matches sensitive query parameters/header values that may appear in exception messages.
+# Covers: key=, apiKey=, api_key=, Auth-Key:, Authorization:, Passwd=, password=
+_SENSITIVE_PARAM_RE = re.compile(
+    r"((?:key|apiKey|api_key|Auth-Key|Authorization|Passwd|password|token|secret)"
+    r"[=:]\s*)[^\s&,;\"']+",
+    re.IGNORECASE,
+)
+
+
+def _sanitize_message(msg: str) -> str:
+    """Redact sensitive parameter values from a string."""
+    return _SENSITIVE_PARAM_RE.sub(r"\1[REDACTED]", msg)
 
 
 class ProxyConfig:
@@ -17,9 +31,9 @@ class ProxyConfig:
 
     def __init__(
         self,
-        http_proxy: str | None = None,
-        https_proxy: str | None = None,
-        no_proxy: list[str] | None = None,
+        http_proxy: Optional[str] = None,
+        https_proxy: Optional[str] = None,
+        no_proxy: Optional[list[str]] = None,
         enabled: bool = True,
     ):
         """Initialize proxy configuration.
@@ -36,14 +50,14 @@ class ProxyConfig:
         self._no_proxy = no_proxy or []
 
     @property
-    def http_proxy(self) -> str | None:
+    def http_proxy(self) -> Optional[str]:
         """Get HTTP proxy from config or environment."""
         if not self.enabled:
             return None
         return self._http_proxy or os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
 
     @property
-    def https_proxy(self) -> str | None:
+    def https_proxy(self) -> Optional[str]:
         """Get HTTPS proxy from config or environment."""
         if not self.enabled:
             return None
@@ -87,7 +101,7 @@ class ProxyConfig:
         return False
 
     @classmethod
-    def from_dict(cls, config: dict) -> ProxyConfig:
+    def from_dict(cls, config: dict[str, Any]) -> "ProxyConfig":
         """Create ProxyConfig from dictionary."""
         return cls(
             http_proxy=config.get("http_proxy"),
@@ -106,7 +120,7 @@ class APIError(Exception):
 class RateLimitError(APIError):
     """Raised when API rate limit is exceeded."""
 
-    def __init__(self, message: str, retry_after: int | None = None):
+    def __init__(self, message: str, retry_after: Optional[int] = None):
         super().__init__(message)
         self.retry_after = retry_after
 
@@ -129,17 +143,15 @@ class BaseClient:
 
     def __init__(
         self,
-        api_key: str | None = None,
-        timeout: int | None = None,
-        proxy: ProxyConfig | None = None,
-        user_agent: str | None = None,
+        api_key: Optional[str] = None,
+        timeout: Optional[int] = None,
+        proxy: Optional[ProxyConfig] = None,
+        user_agent: Optional[str] = None,
     ):
         self.api_key = api_key
         self.timeout = timeout or self.DEFAULT_TIMEOUT
         self.proxy = proxy or ProxyConfig()
-        self.user_agent = (
-            user_agent or os.environ.get("OSINT_USER_AGENT") or self.DEFAULT_USER_AGENT
-        )
+        self.user_agent = user_agent or os.environ.get("OSINT_USER_AGENT") or self.DEFAULT_USER_AGENT
         self.session = requests.Session()
         self._setup_session()
 
@@ -174,9 +186,9 @@ class BaseClient:
         self,
         method: str,
         endpoint: str,
-        params: dict | None = None,
-        json_data: dict | None = None,
-        form_data: dict | None = None,
+        params: Optional[dict[str, Any]] = None,
+        json_data: Optional[dict[str, Any]] = None,
+        form_data: Optional[dict[str, Any]] = None,
     ) -> bool:
         """Whether this request should use the response cache.
 
@@ -189,10 +201,10 @@ class BaseClient:
         self,
         method: str,
         endpoint: str,
-        params: dict | None = None,
-        json_data: dict | None = None,
-        form_data: dict | None = None,
-        **kwargs,
+        params: Optional[dict[str, Any]] = None,
+        json_data: Optional[dict[str, Any]] = None,
+        form_data: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> Any:
         """Make HTTP request with retry logic and error handling."""
         from urllib.parse import urlparse
@@ -203,7 +215,7 @@ class BaseClient:
         service = urlparse(url).hostname or "unknown"
 
         # --- response cache check ---
-        cache_key: str | None = None
+        cache_key: Optional[str] = None
         if self._response_cache is not None and self._should_cache(
             method, endpoint, params, json_data, form_data
         ):
@@ -223,7 +235,7 @@ class BaseClient:
         if self.proxy and not self.proxy.should_bypass(url):
             proxies = self.proxy.get_proxies()
 
-        last_exception: Exception | None = None
+        last_exception: Optional[Exception] = None
 
         for attempt in range(self.MAX_RETRIES):
             try:
@@ -247,7 +259,9 @@ class BaseClient:
                     except (ValueError, TypeError):
                         # Retry-After may be a date string per HTTP spec
                         retry_after = 60
-                    raise RateLimitError(f"Rate limit exceeded for {url}", retry_after=retry_after)
+                    raise RateLimitError(
+                        f"Rate limit exceeded for {url}", retry_after=retry_after
+                    )
 
                 # Handle other errors
                 if response.status_code >= 400:
@@ -257,7 +271,7 @@ class BaseClient:
                 get_usage_tracker().record_api_request(service)
 
                 # --- cache successful response ---
-                if cache_key is not None:
+                if cache_key is not None and self._response_cache is not None:
                     try:
                         self._response_cache.set(cache_key, data)
                     except Exception:
@@ -265,7 +279,7 @@ class BaseClient:
 
                 return data
 
-            except requests.Timeout:
+            except requests.Timeout as e:
                 last_exception = APITimeoutError(f"Request to {url} timed out")
                 logger.warning(f"Timeout on attempt {attempt + 1}/{self.MAX_RETRIES}: {url}")
 
@@ -273,8 +287,11 @@ class BaseClient:
                 raise
 
             except requests.RequestException as e:
-                last_exception = APIError(f"Request failed: {e}")
-                logger.warning(f"Request failed on attempt {attempt + 1}/{self.MAX_RETRIES}: {e}")
+                sanitized = _sanitize_message(str(e))
+                last_exception = APIError(f"Request failed: {sanitized}")
+                logger.warning(
+                    f"Request failed on attempt {attempt + 1}/{self.MAX_RETRIES}: {sanitized}"
+                )
 
             # Exponential backoff
             if attempt < self.MAX_RETRIES - 1:
@@ -285,12 +302,12 @@ class BaseClient:
         get_usage_tracker().record_api_request(service, error=True)
         raise last_exception or APIError("Request failed after all retries")
 
-    def get(self, endpoint: str, params: dict | None = None, **kwargs) -> Any:
+    def get(self, endpoint: str, params: Optional[dict[str, Any]] = None, **kwargs: Any) -> Any:
         """Make GET request."""
         return self._request("GET", endpoint, params=params, **kwargs)
 
     def post(
-        self, endpoint: str, json_data: dict | None = None, form_data: dict | None = None, **kwargs
+        self, endpoint: str, json_data: Optional[dict[str, Any]] = None, form_data: Optional[dict[str, Any]] = None, **kwargs: Any
     ) -> Any:
         """Make POST request."""
         return self._request("POST", endpoint, json_data=json_data, form_data=form_data, **kwargs)

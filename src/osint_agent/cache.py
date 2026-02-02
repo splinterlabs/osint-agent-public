@@ -6,18 +6,17 @@ import hashlib
 import json
 import os
 import tempfile
-from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Optional
 
 
 def make_request_cache_key(
     method: str,
     url: str,
-    params: dict | None = None,
-    json_data: dict | None = None,
-    form_data: dict | None = None,
+    params: dict[str, Any] | None = None,
+    json_data: dict[str, Any] | None = None,
+    form_data: dict[str, Any] | None = None,
 ) -> str:
     """Generate a deterministic cache key from HTTP request parameters.
 
@@ -49,7 +48,7 @@ class ThreatContextCache:
         safe_key = "".join(c if c.isalnum() or c in "-_" else "_" for c in key)
         return self.cache_dir / f"{safe_key}.json"
 
-    def get(self, key: str) -> Any | None:
+    def get(self, key: str) -> Optional[Any]:
         """Retrieve cached value if it exists."""
         path = self._cache_path(key)
         if not path.exists():
@@ -68,33 +67,52 @@ class ThreatContextCache:
         try:
             data = json.loads(path.read_text())
             cached_at = datetime.fromisoformat(data["cached_at"])
-            now = datetime.now(UTC)
+            now = datetime.now(timezone.utc)
             # Handle naive timestamps from older cache entries
             if cached_at.tzinfo is None:
-                cached_at = cached_at.replace(tzinfo=UTC)
+                cached_at = cached_at.replace(tzinfo=timezone.utc)
             return now - cached_at > self.ttl
         except (json.JSONDecodeError, KeyError, ValueError):
             return True
 
     def set(self, key: str, value: Any) -> None:
-        """Store value in cache with timestamp (atomic write)."""
+        """Store value in cache with timestamp and secure permissions (atomic write).
+
+        SECURITY: Sets restrictive file permissions (0600) to prevent unauthorized access.
+        Cache files may contain sensitive API responses with PII or threat intelligence.
+        """
         path = self._cache_path(key)
-        fd, tmp_path = tempfile.mkstemp(
-            dir=self.cache_dir,
-            prefix=".cache_",
-            suffix=".json.tmp",
-        )
+
+        # Create temp file with secure permissions
+        old_umask = os.umask(0o077)  # Ensure temp file is created with 600
+        try:
+            fd, tmp_path = tempfile.mkstemp(
+                dir=self.cache_dir,
+                prefix=".cache_",
+                suffix=".json.tmp",
+            )
+        finally:
+            os.umask(old_umask)  # Restore original umask
+
         try:
             with open(fd, "w") as f:
                 json.dump(
                     {
                         "value": value,
-                        "cached_at": datetime.now(UTC).isoformat(),
+                        "cached_at": datetime.now(timezone.utc).isoformat(),
                     },
                     f,
                     indent=2,
                 )
+
+            # Explicitly set restrictive permissions (owner read/write only)
+            os.chmod(tmp_path, 0o600)
+
+            # Atomic rename
             os.replace(tmp_path, path)
+
+            # Verify final file permissions (defense in depth)
+            os.chmod(path, 0o600)
         except Exception:
             Path(tmp_path).unlink(missing_ok=True)
             raise
