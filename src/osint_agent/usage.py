@@ -22,9 +22,7 @@ class UsageTracker:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._investigation_name: str = ""
-        self._tool_calls: dict[str, dict[str, int]] = defaultdict(
-            lambda: {"calls": 0, "errors": 0}
-        )
+        self._tool_calls: dict[str, dict[str, int]] = defaultdict(lambda: {"calls": 0, "errors": 0})
         self._api_requests: dict[str, dict[str, int]] = defaultdict(
             lambda: {"calls": 0, "errors": 0}
         )

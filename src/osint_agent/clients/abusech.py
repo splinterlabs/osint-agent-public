@@ -17,6 +17,7 @@ class AbuseCHClient(BaseClient):
             headers["Auth-Key"] = self.api_key
         return headers
 
+
 # Maximum related URLs/items returned in list responses
 MAX_RELATED_ITEMS = 20
 
@@ -41,7 +42,14 @@ class URLhausClient(AbuseCHClient):
     DEFAULT_TIMEOUT = 30
     CACHE_TTL_HOURS = 4
 
-    def _should_cache(self, method: str, endpoint: str, params: Any = None, json_data: Any = None, form_data: Any = None) -> bool:
+    def _should_cache(
+        self,
+        method: str,
+        endpoint: str,
+        params: Any = None,
+        json_data: Any = None,
+        form_data: Any = None,
+    ) -> bool:
         if "/recent" in endpoint:
             return False
         return True
@@ -196,7 +204,14 @@ class MalwareBazaarClient(AbuseCHClient):
     DEFAULT_TIMEOUT = 30
     CACHE_TTL_HOURS = 4
 
-    def _should_cache(self, method: str, endpoint: str, params: Any = None, json_data: Any = None, form_data: Any = None) -> bool:
+    def _should_cache(
+        self,
+        method: str,
+        endpoint: str,
+        params: Any = None,
+        json_data: Any = None,
+        form_data: Any = None,
+    ) -> bool:
         if form_data and form_data.get("query") == "get_recent":
             return False
         return True
@@ -326,7 +341,14 @@ class ThreatFoxClient(AbuseCHClient):
     DEFAULT_TIMEOUT = 30
     CACHE_TTL_HOURS = 4
 
-    def _should_cache(self, method: str, endpoint: str, params: Any = None, json_data: Any = None, form_data: Any = None) -> bool:
+    def _should_cache(
+        self,
+        method: str,
+        endpoint: str,
+        params: Any = None,
+        json_data: Any = None,
+        form_data: Any = None,
+    ) -> bool:
         if json_data and json_data.get("query") == "get_iocs":
             return False
         return True

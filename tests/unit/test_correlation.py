@@ -168,12 +168,24 @@ class TestIOCClustering:
         now = datetime.now(UTC)
 
         iocs = [
-            {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
-             "timestamp": now.isoformat()},
-            {"type": "ipv4", "value": "192.0.2.2", "source": "report1",
-             "timestamp": (now + timedelta(minutes=5)).isoformat()},
-            {"type": "domain", "value": "evil.com", "source": "report1",
-             "timestamp": (now + timedelta(minutes=10)).isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "report1",
+                "timestamp": now.isoformat(),
+            },
+            {
+                "type": "ipv4",
+                "value": "192.0.2.2",
+                "source": "report1",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+            },
+            {
+                "type": "domain",
+                "value": "evil.com",
+                "source": "report1",
+                "timestamp": (now + timedelta(minutes=10)).isoformat(),
+            },
         ]
 
         clusters = engine.cluster_iocs(iocs, time_window_minutes=60, min_cluster_size=2)
@@ -187,13 +199,25 @@ class TestIOCClustering:
         now = datetime.now(UTC)
 
         iocs = [
-            {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
-             "timestamp": now.isoformat()},
-            {"type": "ipv4", "value": "192.0.2.2", "source": "report1",
-             "timestamp": (now + timedelta(minutes=5)).isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "report1",
+                "timestamp": now.isoformat(),
+            },
+            {
+                "type": "ipv4",
+                "value": "192.0.2.2",
+                "source": "report1",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+            },
             # This one is outside the time window
-            {"type": "ipv4", "value": "192.0.2.3", "source": "report1",
-             "timestamp": (now + timedelta(hours=3)).isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.3",
+                "source": "report1",
+                "timestamp": (now + timedelta(hours=3)).isoformat(),
+            },
         ]
 
         clusters = engine.cluster_iocs(iocs, time_window_minutes=30, min_cluster_size=2)
@@ -206,8 +230,12 @@ class TestIOCClustering:
         now = datetime.now(UTC)
 
         iocs = [
-            {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
-             "timestamp": now.isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "report1",
+                "timestamp": now.isoformat(),
+            },
         ]
 
         clusters = engine.cluster_iocs(iocs, min_cluster_size=2)
@@ -219,14 +247,30 @@ class TestIOCClustering:
         now = datetime.now(UTC)
 
         iocs = [
-            {"type": "ipv4", "value": "192.0.2.1", "source": "source1",
-             "timestamp": now.isoformat()},
-            {"type": "ipv4", "value": "192.0.2.2", "source": "source1",
-             "timestamp": (now + timedelta(minutes=5)).isoformat()},
-            {"type": "domain", "value": "evil1.com", "source": "source2",
-             "timestamp": now.isoformat()},
-            {"type": "domain", "value": "evil2.com", "source": "source2",
-             "timestamp": (now + timedelta(minutes=5)).isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "source1",
+                "timestamp": now.isoformat(),
+            },
+            {
+                "type": "ipv4",
+                "value": "192.0.2.2",
+                "source": "source1",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+            },
+            {
+                "type": "domain",
+                "value": "evil1.com",
+                "source": "source2",
+                "timestamp": now.isoformat(),
+            },
+            {
+                "type": "domain",
+                "value": "evil2.com",
+                "source": "source2",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+            },
         ]
 
         clusters = engine.cluster_iocs(iocs, min_cluster_size=2)
@@ -238,12 +282,24 @@ class TestIOCClustering:
         now = datetime.now(UTC)
 
         iocs = [
-            {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
-             "timestamp": now.isoformat()},
-            {"type": "ipv4", "value": "192.0.2.1", "source": "report1",
-             "timestamp": (now + timedelta(minutes=5)).isoformat()},  # Duplicate
-            {"type": "ipv4", "value": "192.0.2.2", "source": "report1",
-             "timestamp": (now + timedelta(minutes=10)).isoformat()},
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "report1",
+                "timestamp": now.isoformat(),
+            },
+            {
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "source": "report1",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+            },  # Duplicate
+            {
+                "type": "ipv4",
+                "value": "192.0.2.2",
+                "source": "report1",
+                "timestamp": (now + timedelta(minutes=10)).isoformat(),
+            },
         ]
 
         clusters = engine.cluster_iocs(iocs, min_cluster_size=2)

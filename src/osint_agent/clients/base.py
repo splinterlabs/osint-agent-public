@@ -151,7 +151,9 @@ class BaseClient:
         self.api_key = api_key
         self.timeout = timeout or self.DEFAULT_TIMEOUT
         self.proxy = proxy or ProxyConfig()
-        self.user_agent = user_agent or os.environ.get("OSINT_USER_AGENT") or self.DEFAULT_USER_AGENT
+        self.user_agent = (
+            user_agent or os.environ.get("OSINT_USER_AGENT") or self.DEFAULT_USER_AGENT
+        )
         self.session = requests.Session()
         self._setup_session()
 
@@ -259,9 +261,7 @@ class BaseClient:
                     except (ValueError, TypeError):
                         # Retry-After may be a date string per HTTP spec
                         retry_after = 60
-                    raise RateLimitError(
-                        f"Rate limit exceeded for {url}", retry_after=retry_after
-                    )
+                    raise RateLimitError(f"Rate limit exceeded for {url}", retry_after=retry_after)
 
                 # Handle other errors
                 if response.status_code >= 400:
@@ -307,7 +307,11 @@ class BaseClient:
         return self._request("GET", endpoint, params=params, **kwargs)
 
     def post(
-        self, endpoint: str, json_data: dict[str, Any] | None = None, form_data: dict[str, Any] | None = None, **kwargs: Any
+        self,
+        endpoint: str,
+        json_data: dict[str, Any] | None = None,
+        form_data: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> Any:
         """Make POST request."""
         return self._request("POST", endpoint, json_data=json_data, form_data=form_data, **kwargs)

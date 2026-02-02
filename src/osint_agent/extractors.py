@@ -40,23 +40,71 @@ atexit.register(_cleanup_executor)
 # Valid TLDs for domain validation (common + security-relevant)
 VALID_TLDS = {
     # Generic
-    "com", "org", "net", "edu", "gov", "mil", "int", "io", "co", "me",
-    "info", "biz", "xyz", "online", "site", "top", "app", "dev",
+    "com",
+    "org",
+    "net",
+    "edu",
+    "gov",
+    "mil",
+    "int",
+    "io",
+    "co",
+    "me",
+    "info",
+    "biz",
+    "xyz",
+    "online",
+    "site",
+    "top",
+    "app",
+    "dev",
     # Country codes (common)
-    "ru", "cn", "de", "uk", "fr", "jp", "br", "in", "it", "nl", "au",
-    "es", "ca", "kr", "pl", "ua", "ir", "kp",
+    "ru",
+    "cn",
+    "de",
+    "uk",
+    "fr",
+    "jp",
+    "br",
+    "in",
+    "it",
+    "nl",
+    "au",
+    "es",
+    "ca",
+    "kr",
+    "pl",
+    "ua",
+    "ir",
+    "kp",
     # Commonly abused
-    "su", "cc", "tk", "ml", "ga", "cf", "gq", "pw", "buzz",
+    "su",
+    "cc",
+    "tk",
+    "ml",
+    "ga",
+    "cf",
+    "gq",
+    "pw",
+    "buzz",
     # Special
-    "onion", "bit", "i2p",
+    "onion",
+    "bit",
+    "i2p",
 }
 
 # Known false positive domains
 FALSE_POSITIVE_DOMAINS = {
-    "example.com", "example.org", "example.net",
-    "test.com", "localhost.localdomain",
-    "schema.org", "w3.org", "xmlns.com",
-    "purl.org", "rdfs.org",
+    "example.com",
+    "example.org",
+    "example.net",
+    "test.com",
+    "localhost.localdomain",
+    "schema.org",
+    "w3.org",
+    "xmlns.com",
+    "purl.org",
+    "rdfs.org",
 }
 
 
@@ -199,7 +247,7 @@ def validate_hash(hash_value: str, hash_type: str) -> bool:
         return False
 
     # Sequential patterns
-    if h in ("0123456789abcdef" * 4)[:len(h)]:
+    if h in ("0123456789abcdef" * 4)[: len(h)]:
         return False
 
     # Common test values
@@ -254,9 +302,7 @@ def _extract_iocs_internal(content: str) -> dict[str, list[str]]:
 
     # Domains (with TLD validation)
     domain_matches = IOCPatterns.DOMAIN.findall(content)
-    valid_domains = [
-        refang(d).lower() for d in set(domain_matches) if validate_domain(d)
-    ]
+    valid_domains = [refang(d).lower() for d in set(domain_matches) if validate_domain(d)]
     if valid_domains:
         extracted["domain"] = sorted(set(valid_domains))
 
@@ -267,9 +313,7 @@ def _extract_iocs_internal(content: str) -> dict[str, list[str]]:
         ("sha256", IOCPatterns.SHA256),
     ]:
         matches = pattern.findall(content)
-        valid_hashes = [
-            h.lower() for h in set(matches) if validate_hash(h, hash_type)
-        ]
+        valid_hashes = [h.lower() for h in set(matches) if validate_hash(h, hash_type)]
         if valid_hashes:
             extracted[hash_type] = sorted(valid_hashes)
 

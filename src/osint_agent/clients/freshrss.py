@@ -82,7 +82,9 @@ class FreshRSSClient(BaseClient):
 
         password = _get_api_key("FRESHRSS_PASSWORD")
         if not password:
-            raise APIError("FRESHRSS_PASSWORD not configured in keyring. Use 'osint-agent keys set FRESHRSS_PASSWORD' to configure.")
+            raise APIError(
+                "FRESHRSS_PASSWORD not configured in keyring. Use 'osint-agent keys set FRESHRSS_PASSWORD' to configure."
+            )
         return password
 
     def authenticate(self) -> bool:
@@ -152,17 +154,19 @@ class FreshRSSClient(BaseClient):
 
         subscriptions = []
         for sub in response.get("subscriptions", []):
-            subscriptions.append({
-                "id": sub.get("id", ""),
-                "title": sub.get("title", ""),
-                "url": sub.get("url", ""),
-                "html_url": sub.get("htmlUrl", ""),
-                "icon_url": sub.get("iconUrl", ""),
-                "categories": [
-                    {"id": cat.get("id", ""), "label": cat.get("label", "")}
-                    for cat in sub.get("categories", [])
-                ],
-            })
+            subscriptions.append(
+                {
+                    "id": sub.get("id", ""),
+                    "title": sub.get("title", ""),
+                    "url": sub.get("url", ""),
+                    "html_url": sub.get("htmlUrl", ""),
+                    "icon_url": sub.get("iconUrl", ""),
+                    "categories": [
+                        {"id": cat.get("id", ""), "label": cat.get("label", "")}
+                        for cat in sub.get("categories", [])
+                    ],
+                }
+            )
 
         return subscriptions
 
@@ -205,6 +209,7 @@ class FreshRSSClient(BaseClient):
 
         # URL encode the stream ID in the path
         from urllib.parse import quote
+
         endpoint = f"/reader/api/0/stream/contents/{quote(stream_id, safe='')}"
 
         response = self.get(endpoint, params=params)
@@ -281,6 +286,7 @@ class FreshRSSClient(BaseClient):
 
         # FreshRSS uses a special search stream
         from urllib.parse import quote
+
         search_stream = f"user/-/state/com.google/label/{quote(query, safe='')}"
 
         # Try the standard search endpoint first
@@ -302,8 +308,10 @@ class FreshRSSClient(BaseClient):
             query_lower = query.lower()
             filtered = []
             for entry in all_entries["entries"]:
-                if (query_lower in entry.get("title", "").lower() or
-                    query_lower in entry.get("summary", "").lower()):
+                if (
+                    query_lower in entry.get("title", "").lower()
+                    or query_lower in entry.get("summary", "").lower()
+                ):
                     filtered.append(entry)
                     if len(filtered) >= count:
                         break
@@ -348,5 +356,7 @@ class FreshRSSClient(BaseClient):
             "summary": summary,
             "feed_id": origin.get("streamId", ""),
             "feed_title": origin.get("title", ""),
-            "categories": [cat.get("label", "") for cat in item.get("categories", []) if isinstance(cat, dict)],
+            "categories": [
+                cat.get("label", "") for cat in item.get("categories", []) if isinstance(cat, dict)
+            ],
         }

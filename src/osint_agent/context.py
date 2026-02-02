@@ -236,17 +236,15 @@ class ContextManager:
         return {
             "strategic": {
                 "objective_count": len(all_ctx["strategic"].get("objectives", [])),
-                "priority_threats": all_ctx["strategic"].get("threat_landscape", {}).get(
-                    "priority_threats", []
-                )[:5],
+                "priority_threats": all_ctx["strategic"]
+                .get("threat_landscape", {})
+                .get("priority_threats", [])[:5],
             },
             "operational": {
-                "investigation": all_ctx["operational"].get("investigation", {}).get(
-                    "name", ""
-                ),
-                "status": all_ctx["operational"].get("investigation", {}).get(
-                    "status", "not_started"
-                ),
+                "investigation": all_ctx["operational"].get("investigation", {}).get("name", ""),
+                "status": all_ctx["operational"]
+                .get("investigation", {})
+                .get("status", "not_started"),
             },
             "tactical": {
                 "priority_count": len(all_ctx["tactical"].get("priorities", [])),
@@ -255,9 +253,7 @@ class ContextManager:
                 "usage_stats": all_ctx["tactical"].get("usage_stats", {}),
             },
             "security": {
-                "classification": all_ctx["security"].get(
-                    "classification", "unclassified"
-                ),
+                "classification": all_ctx["security"].get("classification", "unclassified"),
             },
         }
 
