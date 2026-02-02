@@ -1,23 +1,18 @@
 # OSINT Agent Makefile
 # Common development and maintenance tasks
-#
-# Copy this file to 'Makefile' and customize as needed:
-#   cp Makefile.example Makefile
 
-.PHONY: help install install-dev install-mcp test test-cov lint format typecheck clean clean-cache clean-all setup verify backup
-
-# Python interpreter (customize if using a virtual environment)
-PYTHON ?= python3
+.PHONY: help install install-dev install-mcp init init-config setup verify backup test test-cov lint format typecheck clean clean-cache clean-all
 
 # Default target
 help:
 	@echo "OSINT Agent - Available Commands"
 	@echo ""
 	@echo "Installation:"
-	@echo "  make install       Install the package"
+	@echo "  make init          Complete setup with verification (recommended)"
+	@echo "  make install       Install the package only"
 	@echo "  make install-dev   Install with development dependencies"
 	@echo "  make install-mcp   Install MCP server"
-	@echo "  make setup         Full setup (install + init databases)"
+	@echo "  make setup         Minimal setup (install + init databases)"
 	@echo ""
 	@echo "Development:"
 	@echo "  make test          Run tests"
@@ -51,16 +46,42 @@ install-dev:
 install-mcp:
 	cd mcp-server && uv sync
 
+# Complete initialization (recommended for first-time setup)
+init: setup init-config verify
+	@echo ""
+	@echo "✅ OSINT Agent is ready to use!"
+	@echo ""
+	@echo "Quick start:"
+	@echo "  source .venv/bin/activate"
+	@echo "  python -m osint_agent.cli intel"
+	@echo ""
+	@echo "Or use Claude Code:"
+	@echo "  claude"
+	@echo ""
+	@echo "See INSTALL.md for next steps and configuration."
+
+init-config:
+	@if [ ! -f config/watchlist.json ]; then \
+		cp config/watchlist.example.json config/watchlist.json && \
+		echo "✓ Created config/watchlist.json from template"; \
+	else \
+		echo "✓ config/watchlist.json already exists"; \
+	fi
+	@mkdir -p reports rules data/logs/investigations
+	@echo "✓ Created output directories"
+
+# Minimal setup (for advanced users or CI)
 setup: install init-dirs init-db
 	@echo "Setup complete! Run 'make verify' to check installation."
 
 init-dirs:
-	@mkdir -p data/cache data/context data/logs
+	@mkdir -p data/cache data/context data/logs data/campaigns
+	@mkdir -p data/logs/investigations
 	@mkdir -p .claude/data/cache .claude/data/logs
-	@echo "Created data directories"
+	@echo "✓ Created data directories"
 
 init-db:
-	@$(PYTHON) -c "\
+	@python3 -c "\
 import sqlite3; \
 conn = sqlite3.connect('data/iocs.db'); \
 conn.execute('CREATE TABLE IF NOT EXISTS iocs (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT NOT NULL, value TEXT NOT NULL, source TEXT, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, hit_count INTEGER DEFAULT 1, UNIQUE(type, value))'); \
@@ -71,7 +92,7 @@ conn = sqlite3.connect('data/rate_limits.db'); \
 conn.execute('CREATE TABLE IF NOT EXISTS requests (id INTEGER PRIMARY KEY AUTOINCREMENT, domain TEXT NOT NULL, timestamp TEXT NOT NULL)'); \
 conn.execute('CREATE INDEX IF NOT EXISTS idx_domain ON requests(domain)'); \
 conn.close(); \
-print('Initialized databases')"
+print('✓ Initialized databases')"
 
 # =============================================================================
 # Development
@@ -129,11 +150,12 @@ backup:
 
 verify:
 	@echo "Verifying installation..."
-	@$(PYTHON) -c "import osint_agent; print('  ✓ osint_agent module')" || echo "  ✗ osint_agent module"
-	@$(PYTHON) -m osint_agent.cli --help > /dev/null 2>&1 && echo "  ✓ CLI working" || echo "  ✗ CLI not working"
-	@test -f data/iocs.db && echo "  ✓ IOC database" || echo "  ✗ IOC database missing"
-	@test -f config/watchlist.json && echo "  ✓ Watchlist config" || echo "  ✗ Watchlist config missing"
-	@test -d .claude/commands && echo "  ✓ Claude commands" || echo "  ✗ Claude commands missing"
+	@python3 -c "import osint_agent; print('✓ osint_agent module')" || echo "✗ osint_agent module"
+	@python3 -m osint_agent.cli --help > /dev/null 2>&1 && echo "✓ CLI working" || echo "✗ CLI not working"
+	@test -f data/iocs.db && echo "✓ IOC database" || echo "✗ IOC database missing"
+	@test -f config/watchlist.json && echo "✓ Watchlist config" || echo "✗ Watchlist config missing"
+	@test -d .claude/commands && echo "✓ Claude commands" || echo "✗ Claude commands missing"
+	@echo ""
 	@echo "Verification complete"
 
 # =============================================================================
@@ -144,11 +166,11 @@ lookup:
 ifndef CVE
 	@echo "Usage: make lookup CVE=CVE-2024-3400"
 else
-	$(PYTHON) -m osint_agent.cli lookup $(CVE) --format text
+	.venv/bin/python -m osint_agent.cli lookup $(CVE) --format text
 endif
 
 intel:
-	$(PYTHON) -m osint_agent.cli intel
+	.venv/bin/python -m osint_agent.cli intel
 
 # =============================================================================
 # Docker (optional)
