@@ -24,6 +24,9 @@ jobs:
       - name: Set up Python
         run: uv python install ${{ env.PYTHON_VERSION }}
 
+      - name: Create virtual environment
+        run: uv venv
+
       - name: Install dependencies
         run: uv pip install -e ".[dev]"
 
@@ -47,6 +50,9 @@ jobs:
       - name: Set up Python
         run: uv python install ${{ env.PYTHON_VERSION }}
 
+      - name: Create virtual environment
+        run: uv venv
+
       - name: Install dependencies
         run: uv pip install -e ".[dev]"
 
@@ -66,6 +72,9 @@ jobs:
 
       - name: Set up Python
         run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Create virtual environment
+        run: uv venv
 
       - name: Install dependencies
         run: uv pip install -e ".[dev]"
@@ -106,6 +115,9 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
+      - name: Create virtual environment
+        run: uv venv
+
       - name: Install dependencies
         run: uv pip install -e ".[dev]"
 
@@ -128,6 +140,9 @@ jobs:
 
       - name: Set up Python
         run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Create virtual environment
+        run: uv venv
 
       - name: Install main package
         run: uv pip install -e .
@@ -153,6 +168,9 @@ jobs:
 
       - name: Set up Python
         run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Create virtual environment
+        run: uv venv
 
       - name: Install dependencies
         run: uv pip install -e ".[dev]" pip-audit
