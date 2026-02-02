@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -18,9 +18,9 @@ class CPEMatch:
     matched: bool
     pattern: str
     cpe: str
-    vendor: Optional[str] = None
-    product: Optional[str] = None
-    version: Optional[str] = None
+    vendor: str | None = None
+    product: str | None = None
+    version: str | None = None
 
 
 def parse_cpe23(cpe: str) -> dict[str, str]:
@@ -180,7 +180,7 @@ def match_cpe_pattern(cpe: str, pattern: str) -> CPEMatch:
 
 def match_vendor_product(
     cpe: str, vendors: list[str], products: list[str]
-) -> tuple[bool, Optional[str], Optional[str]]:
+) -> tuple[bool, str | None, str | None]:
     """Check if CPE matches any vendor or product in lists.
 
     Args:

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from .base import BaseClient
 
@@ -16,14 +16,14 @@ class CISAKEVClient(BaseClient):
 
     def __init__(self) -> None:
         super().__init__()
-        self._cache: Optional[dict[str, Any]] = None
-        self._cache_time: Optional[datetime] = None
+        self._cache: dict[str, Any] | None = None
+        self._cache_time: datetime | None = None
         self._cache_ttl = timedelta(hours=1)
         self._cve_index: dict[str, dict[str, Any]] = {}
 
     def _get_catalog(self) -> dict[str, Any]:
         """Fetch the full KEV catalog (cached)."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Return cached if fresh
         if (
@@ -44,7 +44,7 @@ class CISAKEVClient(BaseClient):
         }
         return response
 
-    def lookup(self, cve_id: str) -> Optional[dict[str, Any]]:
+    def lookup(self, cve_id: str) -> dict[str, Any] | None:
         """Check if a CVE is in the KEV catalog.
 
         Args:
@@ -73,7 +73,7 @@ class CISAKEVClient(BaseClient):
             List of KEV entries added within the time period
         """
         catalog = self._get_catalog()
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
 
         recent = []
         for vuln in catalog.get("vulnerabilities", []):
@@ -81,7 +81,7 @@ class CISAKEVClient(BaseClient):
             if date_added_str:
                 try:
                     date_added = datetime.strptime(date_added_str, "%Y-%m-%d").replace(
-                        tzinfo=timezone.utc
+                        tzinfo=UTC
                     )
                     if date_added >= cutoff:
                         recent.append(self._parse_kev_entry(vuln))

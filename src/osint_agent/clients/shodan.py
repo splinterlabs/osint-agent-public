@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from .base import BaseClient, ProxyConfig
 
@@ -25,8 +25,8 @@ class ShodanClient(BaseClient):
     def __init__(
         self,
         api_key: str,
-        timeout: Optional[int] = None,
-        proxy: Optional[ProxyConfig] = None,
+        timeout: int | None = None,
+        proxy: ProxyConfig | None = None,
     ):
         """Initialize Shodan client.
 
@@ -43,7 +43,7 @@ class ShodanClient(BaseClient):
         """Get headers for Shodan API requests."""
         return {}
 
-    def _add_key(self, params: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    def _add_key(self, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Add API key to request parameters."""
         params = params or {}
         params["key"] = self.api_key
@@ -119,7 +119,7 @@ class ShodanClient(BaseClient):
         query: str,
         page: int = 1,
         limit: int = 100,
-        facets: Optional[list[str]] = None,
+        facets: list[str] | None = None,
     ) -> dict[str, Any]:
         """Search Shodan for hosts matching a query.
 
@@ -163,7 +163,7 @@ class ShodanClient(BaseClient):
             "facets": result.get("facets", {}),
         }
 
-    def search_count(self, query: str, facets: Optional[list[str]] = None) -> dict[str, Any]:
+    def search_count(self, query: str, facets: list[str] | None = None) -> dict[str, Any]:
         """Get the number of results for a search query (without results).
 
         This is faster and doesn't consume query credits.
@@ -185,7 +185,7 @@ class ShodanClient(BaseClient):
             "facets": result.get("facets", {}),
         }
 
-    def resolve(self, hostnames: list[str]) -> dict[str, Optional[str]]:
+    def resolve(self, hostnames: list[str]) -> dict[str, str | None]:
         """Resolve hostnames to IP addresses.
 
         Args:
@@ -195,7 +195,7 @@ class ShodanClient(BaseClient):
             Dictionary mapping hostnames to IP addresses
         """
         params = self._add_key({"hostnames": ",".join(hostnames[:100])})
-        result: dict[str, Optional[str]] = self.get("/dns/resolve", params=params)
+        result: dict[str, str | None] = self.get("/dns/resolve", params=params)
         return result
 
     def reverse(self, ips: list[str]) -> dict[str, list[str]]:

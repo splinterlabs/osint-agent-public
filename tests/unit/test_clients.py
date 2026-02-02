@@ -2,17 +2,15 @@
 
 import pytest
 import responses
-from responses import matchers
 
 from osint_agent.clients.base import (
     APIError,
-    APITimeoutError,
     BaseClient,
     ProxyConfig,
     RateLimitError,
 )
-from osint_agent.clients.nvd import NVDClient
 from osint_agent.clients.cisa_kev import CISAKEVClient
+from osint_agent.clients.nvd import NVDClient
 
 
 class TestProxyConfig:

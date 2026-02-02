@@ -6,15 +6,16 @@ and managing investigation lifecycle.
 
 from __future__ import annotations
 
+import builtins
 import json
 import logging
 import tempfile
 import uuid
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
 from filelock import FileLock
 
@@ -67,7 +68,7 @@ class CampaignIOC:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CampaignIOC":
+    def from_dict(cls, data: dict[str, Any]) -> CampaignIOC:
         """Create from dictionary."""
         return cls(
             ioc_type=data["ioc_type"],
@@ -104,7 +105,7 @@ class CampaignTTP:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CampaignTTP":
+    def from_dict(cls, data: dict[str, Any]) -> CampaignTTP:
         """Create from dictionary."""
         return cls(
             technique_id=data["technique_id"],
@@ -126,7 +127,7 @@ class Campaign:
     status: CampaignStatus
     created_at: str
     updated_at: str
-    threat_actor: Optional[str] = None
+    threat_actor: str | None = None
     threat_actor_aliases: list[str] = field(default_factory=list)
     targeted_sectors: list[str] = field(default_factory=list)
     targeted_regions: list[str] = field(default_factory=list)
@@ -161,7 +162,7 @@ class Campaign:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Campaign":
+    def from_dict(cls, data: dict[str, Any]) -> Campaign:
         """Create from dictionary."""
         return cls(
             id=data["id"],
@@ -189,11 +190,11 @@ class Campaign:
         value: str,
         source: str,
         confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM,
-        tags: Optional[list[str]] = None,
+        tags: list[str] | None = None,
         notes: str = "",
     ) -> CampaignIOC:
         """Add IOC to campaign."""
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         # Check if IOC already exists
         for existing in self.iocs:
@@ -227,7 +228,7 @@ class Campaign:
         confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM,
     ) -> CampaignTTP:
         """Add TTP to campaign."""
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         # Check if TTP already exists
         for existing in self.ttps:
@@ -252,12 +253,12 @@ class Campaign:
         """Add CVE to campaign."""
         if cve_id not in self.cves:
             self.cves.append(cve_id)
-            self.updated_at = datetime.now(timezone.utc).isoformat()
+            self.updated_at = datetime.now(UTC).isoformat()
 
     def update_status(self, status: CampaignStatus) -> None:
         """Update campaign status."""
         self.status = status
-        self.updated_at = datetime.now(timezone.utc).isoformat()
+        self.updated_at = datetime.now(UTC).isoformat()
 
 
 class CampaignManager:
@@ -269,7 +270,7 @@ class CampaignManager:
     # Lock timeout in seconds
     LOCK_TIMEOUT = 10
 
-    def __init__(self, data_dir: Optional[Path] = None):
+    def __init__(self, data_dir: Path | None = None):
         """Initialize campaign manager.
 
         Args:
@@ -300,14 +301,13 @@ class CampaignManager:
             return
 
         try:
-            with self._lock:
-                with open(storage_path) as f:
-                    data = json.load(f)
-                    for campaign_data in data.get("campaigns", []):
-                        campaign = Campaign.from_dict(campaign_data)
-                        self._campaigns[campaign.id] = campaign
-                        self._index_campaign(campaign)
-        except (json.JSONDecodeError, IOError) as e:
+            with self._lock, open(storage_path) as f:
+                data = json.load(f)
+                for campaign_data in data.get("campaigns", []):
+                    campaign = Campaign.from_dict(campaign_data)
+                    self._campaigns[campaign.id] = campaign
+                    self._index_campaign(campaign)
+        except (OSError, json.JSONDecodeError) as e:
             logger.error(f"Failed to load campaigns: {e}")
 
     def _index_campaign(self, campaign: Campaign) -> None:
@@ -406,15 +406,15 @@ class CampaignManager:
                     # Clean up temp file on failure
                     Path(tmp_path).unlink(missing_ok=True)
                     raise
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Failed to save campaigns: {e}")
 
     def create(
         self,
         name: str,
         description: str,
-        threat_actor: Optional[str] = None,
-        tags: Optional[list[str]] = None,
+        threat_actor: str | None = None,
+        tags: list[str] | None = None,
     ) -> Campaign:
         """Create a new campaign.
 
@@ -427,7 +427,7 @@ class CampaignManager:
         Returns:
             Created campaign
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         campaign = Campaign(
             id=str(uuid.uuid4())[:8],
             name=name,
@@ -443,11 +443,11 @@ class CampaignManager:
         self._save_campaigns()
         return campaign
 
-    def get(self, campaign_id: str) -> Optional[Campaign]:
+    def get(self, campaign_id: str) -> Campaign | None:
         """Get campaign by ID."""
         return self._campaigns.get(campaign_id)
 
-    def get_by_name(self, name: str) -> Optional[Campaign]:
+    def get_by_name(self, name: str) -> Campaign | None:
         """Get campaign by name (case-insensitive)."""
         name_lower = name.lower()
         for campaign in self._campaigns.values():
@@ -457,9 +457,9 @@ class CampaignManager:
 
     def list(
         self,
-        status: Optional[CampaignStatus] = None,
-        threat_actor: Optional[str] = None,
-        tag: Optional[str] = None,
+        status: CampaignStatus | None = None,
+        threat_actor: str | None = None,
+        tag: str | None = None,
     ) -> list[Campaign]:
         """List campaigns with optional filters.
 
@@ -487,7 +487,7 @@ class CampaignManager:
 
     def update(self, campaign: Campaign) -> None:
         """Update campaign in storage."""
-        campaign.updated_at = datetime.now(timezone.utc).isoformat()
+        campaign.updated_at = datetime.now(UTC).isoformat()
         self._reindex_campaign(campaign)
         self._campaigns[campaign.id] = campaign
         self._save_campaigns()
@@ -502,7 +502,7 @@ class CampaignManager:
             return True
         return False
 
-    def find_by_ioc(self, ioc_type: str, value: str) -> List[Campaign]:
+    def find_by_ioc(self, ioc_type: str, value: str) -> builtins.list[Campaign]:
         """Find campaigns containing an IOC.
 
         Uses index for O(1) lookup instead of scanning all campaigns.
@@ -518,7 +518,7 @@ class CampaignManager:
         campaign_ids = self._ioc_index.get(key, set())
         return [self._campaigns[cid] for cid in campaign_ids if cid in self._campaigns]
 
-    def find_by_ttp(self, technique_id: str) -> List[Campaign]:
+    def find_by_ttp(self, technique_id: str) -> builtins.list[Campaign]:
         """Find campaigns using a technique.
 
         Uses index for O(1) lookup instead of scanning all campaigns.
@@ -532,7 +532,7 @@ class CampaignManager:
         campaign_ids = self._ttp_index.get(technique_id, set())
         return [self._campaigns[cid] for cid in campaign_ids if cid in self._campaigns]
 
-    def find_by_cve(self, cve_id: str) -> List[Campaign]:
+    def find_by_cve(self, cve_id: str) -> builtins.list[Campaign]:
         """Find campaigns exploiting a CVE.
 
         Uses index for O(1) lookup instead of scanning all campaigns.

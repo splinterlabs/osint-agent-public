@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urljoin
 
 import requests
@@ -38,7 +38,7 @@ class FreshRSSClient(BaseClient):
         base_url: str,
         username: str,
         password: str,
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
     ):
         """Initialize FreshRSS client.
 
@@ -55,7 +55,7 @@ class FreshRSSClient(BaseClient):
         self.BASE_URL = self.base_url
         self.username = username
         # DO NOT store password - it will be fetched from keymanager when needed
-        self._auth_token: Optional[str] = None
+        self._auth_token: str | None = None
         super().__init__(timeout=timeout)
 
     def _get_headers(self) -> dict[str, str]:
@@ -119,10 +119,7 @@ class FreshRSSClient(BaseClient):
 
             response.raise_for_status()
         except requests.RequestException as e:
-            # Ensure password is cleared even on exception
-            if 'password' in locals():
-                del password
-            raise APIError(f"FreshRSS authentication failed: {e}")
+            raise APIError(f"FreshRSS authentication failed: {e}") from e
 
         # Parse response - format is key=value pairs
         auth_data = {}
@@ -171,10 +168,10 @@ class FreshRSSClient(BaseClient):
 
     def get_entries(
         self,
-        feed_id: Optional[str] = None,
+        feed_id: str | None = None,
         count: int = 20,
         unread_only: bool = False,
-        continuation: Optional[str] = None,
+        continuation: str | None = None,
     ) -> dict[str, Any]:
         """Fetch entries from a feed or all feeds.
 

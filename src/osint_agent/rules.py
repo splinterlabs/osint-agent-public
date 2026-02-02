@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Optional
 import re
+from datetime import UTC, datetime
 
 # Maximum IOCs per field/direction in generated rules
 MAX_IOCS_PER_FIELD = 20
@@ -14,10 +13,10 @@ MAX_IOCS_PER_RULE = 50
 def generate_yara_rule(
     name: str,
     hashes: list[dict[str, str]],
-    description: Optional[str] = None,
+    description: str | None = None,
     author: str = "OSINT Agent",
-    tags: Optional[list[str]] = None,
-    strings: Optional[list[str]] = None,
+    tags: list[str] | None = None,
+    strings: list[str] | None = None,
 ) -> str:
     """Generate a YARA rule from file hashes.
 
@@ -42,7 +41,7 @@ def generate_yara_rule(
     if description:
         meta_lines.append(f'        description = "{_escape_yara_string(description)}"')
     meta_lines.append(f'        author = "{_escape_yara_string(author)}"')
-    meta_lines.append(f'        date = "{datetime.now(timezone.utc).strftime("%Y-%m-%d")}"')
+    meta_lines.append(f'        date = "{datetime.now(UTC).strftime("%Y-%m-%d")}"')
 
     if tags:
         meta_lines.append(f'        tags = "{", ".join(tags)}"')
@@ -104,13 +103,13 @@ rule {safe_name}{tags_str}
 def generate_sigma_rule(
     title: str,
     iocs: dict[str, list[str]],
-    description: Optional[str] = None,
+    description: str | None = None,
     author: str = "OSINT Agent",
     level: str = "high",
     status: str = "experimental",
-    tags: Optional[list[str]] = None,
+    tags: list[str] | None = None,
     logsource_category: str = "proxy",
-    logsource_product: Optional[str] = None,
+    logsource_product: str | None = None,
 ) -> str:
     """Generate a Sigma rule from network IOCs.
 
@@ -156,7 +155,7 @@ def generate_sigma_rule(
         lines.append(f"description: {description}")
 
     lines.append(f"author: {author}")
-    lines.append(f"date: {datetime.now(timezone.utc).strftime('%Y/%m/%d')}")
+    lines.append(f"date: {datetime.now(UTC).strftime('%Y/%m/%d')}")
 
     if tags:
         lines.append("tags:")
@@ -195,10 +194,10 @@ def generate_sigma_rule(
 def generate_sigma_dns_rule(
     title: str,
     domains: list[str],
-    description: Optional[str] = None,
+    description: str | None = None,
     author: str = "OSINT Agent",
     level: str = "high",
-    tags: Optional[list[str]] = None,
+    tags: list[str] | None = None,
 ) -> str:
     """Generate a Sigma rule for DNS queries.
 
@@ -222,7 +221,7 @@ def generate_sigma_dns_rule(
         lines.append(f"description: {description}")
 
     lines.append(f"author: {author}")
-    lines.append(f"date: {datetime.now(timezone.utc).strftime('%Y/%m/%d')}")
+    lines.append(f"date: {datetime.now(UTC).strftime('%Y/%m/%d')}")
 
     if tags:
         lines.append("tags:")
@@ -250,11 +249,11 @@ def generate_sigma_dns_rule(
 def generate_sigma_firewall_rule(
     title: str,
     ips: list[str],
-    description: Optional[str] = None,
+    description: str | None = None,
     author: str = "OSINT Agent",
     level: str = "high",
     direction: str = "both",
-    tags: Optional[list[str]] = None,
+    tags: list[str] | None = None,
 ) -> str:
     """Generate a Sigma rule for firewall logs.
 
@@ -279,7 +278,7 @@ def generate_sigma_firewall_rule(
         lines.append(f"description: {description}")
 
     lines.append(f"author: {author}")
-    lines.append(f"date: {datetime.now(timezone.utc).strftime('%Y/%m/%d')}")
+    lines.append(f"date: {datetime.now(UTC).strftime('%Y/%m/%d')}")
 
     if tags:
         lines.append("tags:")

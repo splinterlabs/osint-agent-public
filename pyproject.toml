@@ -48,11 +48,15 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
 ignore = [
     "E501",    # Line length handled separately
-    "B904",    # raise ... from err (stylistic preference)
+    "E741",    # Ambiguous variable names
+    "F841",    # Local variable assigned but never used
+    "C401",    # Unnecessary generator
     "SIM102",  # Nested if statements (readability preference)
     "SIM103",  # Return condition directly (readability preference)
     "SIM108",  # Ternary operator (readability preference)
     "SIM116",  # Dictionary instead of if statements (readability preference)
+    "SIM118",  # Use key in dict instead of key in dict.keys()
+    "B904",    # raise ... from err (stylistic preference)
 ]
 
 [tool.mypy]
