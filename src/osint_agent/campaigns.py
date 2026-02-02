@@ -364,19 +364,28 @@ class CampaignManager:
         self._index_campaign(campaign)
 
     def _save_campaigns(self) -> None:
-        """Save campaigns to storage with atomic write and file locking.
+        """Save campaigns to storage with atomic write, file locking, and secure permissions.
 
         Uses write-to-temp-then-rename pattern for atomicity.
+        SECURITY: Sets restrictive file permissions (0600) to prevent unauthorized access.
+        Campaign files contain sensitive IOCs, TTPs, and threat intelligence.
         """
+        import os
+
         storage_path = self._get_storage_path()
         try:
             with self._lock:
-                # Write to temporary file first
-                fd, tmp_path = tempfile.mkstemp(
-                    dir=self.data_dir,
-                    prefix=".campaigns_",
-                    suffix=".json.tmp",
-                )
+                # Write to temporary file first with secure permissions
+                old_umask = os.umask(0o077)  # Ensure temp file is created with 600
+                try:
+                    fd, tmp_path = tempfile.mkstemp(
+                        dir=self.data_dir,
+                        prefix=".campaigns_",
+                        suffix=".json.tmp",
+                    )
+                finally:
+                    os.umask(old_umask)  # Restore original umask
+
                 try:
                     with open(fd, "w") as f:
                         json.dump(
@@ -384,8 +393,15 @@ class CampaignManager:
                             f,
                             indent=2,
                         )
+
+                    # Explicitly set restrictive permissions (owner read/write only)
+                    os.chmod(tmp_path, 0o600)
+
                     # Atomic rename (works on POSIX, best-effort on Windows)
                     Path(tmp_path).replace(storage_path)
+
+                    # Verify final file permissions (defense in depth)
+                    os.chmod(storage_path, 0o600)
                 except Exception:
                     # Clean up temp file on failure
                     Path(tmp_path).unlink(missing_ok=True)
