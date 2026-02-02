@@ -1,7 +1,13 @@
 # OSINT Agent Makefile
 # Common development and maintenance tasks
+#
+# Copy this file to 'Makefile' and customize as needed:
+#   cp Makefile.example Makefile
 
 .PHONY: help install install-dev install-mcp test test-cov lint format typecheck clean clean-cache clean-all setup verify backup
+
+# Python interpreter (customize if using a virtual environment)
+PYTHON ?= python3
 
 # Default target
 help:
@@ -54,7 +60,7 @@ init-dirs:
 	@echo "Created data directories"
 
 init-db:
-	@python3 -c "\
+	@$(PYTHON) -c "\
 import sqlite3; \
 conn = sqlite3.connect('data/iocs.db'); \
 conn.execute('CREATE TABLE IF NOT EXISTS iocs (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT NOT NULL, value TEXT NOT NULL, source TEXT, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, hit_count INTEGER DEFAULT 1, UNIQUE(type, value))'); \
@@ -123,8 +129,8 @@ backup:
 
 verify:
 	@echo "Verifying installation..."
-	@python3 -c "import osint_agent; print('  ✓ osint_agent module')" || echo "  ✗ osint_agent module"
-	@python3 -m osint_agent.cli --help > /dev/null 2>&1 && echo "  ✓ CLI working" || echo "  ✗ CLI not working"
+	@$(PYTHON) -c "import osint_agent; print('  ✓ osint_agent module')" || echo "  ✗ osint_agent module"
+	@$(PYTHON) -m osint_agent.cli --help > /dev/null 2>&1 && echo "  ✓ CLI working" || echo "  ✗ CLI not working"
 	@test -f data/iocs.db && echo "  ✓ IOC database" || echo "  ✗ IOC database missing"
 	@test -f config/watchlist.json && echo "  ✓ Watchlist config" || echo "  ✗ Watchlist config missing"
 	@test -d .claude/commands && echo "  ✓ Claude commands" || echo "  ✗ Claude commands missing"
@@ -138,11 +144,11 @@ lookup:
 ifndef CVE
 	@echo "Usage: make lookup CVE=CVE-2024-3400"
 else
-	.venv/bin/python -m osint_agent.cli lookup $(CVE) --format text
+	$(PYTHON) -m osint_agent.cli lookup $(CVE) --format text
 endif
 
 intel:
-	.venv/bin/python -m osint_agent.cli intel
+	$(PYTHON) -m osint_agent.cli intel
 
 # =============================================================================
 # Docker (optional)
