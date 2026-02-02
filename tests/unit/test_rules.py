@@ -234,8 +234,8 @@ class TestGenerateSigmaRule:
         rule1 = generate_sigma_rule(title="Same Title", iocs={"ipv4": ["1.2.3.4"]})
         rule2 = generate_sigma_rule(title="Same Title", iocs={"ipv4": ["1.2.3.4"]})
         # Extract IDs
-        id1 = [l for l in rule1.split("\n") if l.startswith("id:")][0]
-        id2 = [l for l in rule2.split("\n") if l.startswith("id:")][0]
+        id1 = [line for line in rule1.split("\n") if line.startswith("id:")][0]
+        id2 = [line for line in rule2.split("\n") if line.startswith("id:")][0]
         assert id1 == id2
 
     def test_ip_limit_per_field(self):
