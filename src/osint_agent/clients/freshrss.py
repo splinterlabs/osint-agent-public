@@ -42,16 +42,19 @@ class FreshRSSClient(BaseClient):
     ):
         """Initialize FreshRSS client.
 
+        SECURITY: Password is NOT stored as instance variable to minimize memory exposure.
+        Password is fetched from keymanager on-demand during authentication only.
+
         Args:
             base_url: Base URL of FreshRSS instance (e.g., https://rss.example.com)
             username: FreshRSS username
-            password: FreshRSS password
+            password: FreshRSS password (stored in keyring, not in memory)
             timeout: Request timeout in seconds
         """
         self.base_url = base_url.rstrip("/")
         self.BASE_URL = self.base_url
         self.username = username
-        self._password: Optional[str] = password
+        # DO NOT store password - it will be fetched from keymanager when needed
         self._auth_token: Optional[str] = None
         super().__init__(timeout=timeout)
 
@@ -62,8 +65,31 @@ class FreshRSSClient(BaseClient):
             headers["Authorization"] = f"GoogleLogin auth={self._auth_token}"
         return headers
 
+    def _get_password(self) -> str:
+        """Fetch password from keymanager on demand.
+
+        SECURITY: This avoids storing password in memory as an instance variable.
+        Password is only in memory during authentication, then immediately cleared.
+
+        Returns:
+            Password from keyring
+
+        Raises:
+            APIError: If password is not available
+        """
+        if not _KEYMANAGER_AVAILABLE:
+            raise APIError("Keymanager not available for FreshRSS authentication")
+
+        password = _get_api_key("FRESHRSS_PASSWORD")
+        if not password:
+            raise APIError("FRESHRSS_PASSWORD not configured in keyring. Use 'osint-agent keys set FRESHRSS_PASSWORD' to configure.")
+        return password
+
     def authenticate(self) -> bool:
         """Authenticate with FreshRSS and obtain an auth token.
+
+        SECURITY: Password is fetched from keyring only when needed and immediately
+        cleared from local scope after authentication.
 
         Returns:
             True if authentication succeeded.
@@ -73,12 +99,8 @@ class FreshRSSClient(BaseClient):
         """
         logger.info(f"Authenticating to FreshRSS at {self.base_url}")
 
-        # Re-fetch password from keymanager if it was cleared after a prior auth
-        password = self._password
-        if not password and _KEYMANAGER_AVAILABLE:
-            password = _get_api_key("FRESHRSS_PASSWORD")
-        if not password:
-            raise APIError("FreshRSS password not available for re-authentication")
+        # Fetch password only when needed, don't store as instance variable
+        password = self._get_password()
 
         url = urljoin(self.base_url, "/accounts/ClientLogin")
 
@@ -92,8 +114,14 @@ class FreshRSSClient(BaseClient):
                 timeout=self.timeout,
                 proxies=self.proxy.get_proxies() if not self.proxy.should_bypass(url) else {},
             )
+            # Explicitly clear password from local scope as soon as possible
+            del password
+
             response.raise_for_status()
         except requests.RequestException as e:
+            # Ensure password is cleared even on exception
+            if 'password' in locals():
+                del password
             raise APIError(f"FreshRSS authentication failed: {e}")
 
         # Parse response - format is key=value pairs
@@ -107,8 +135,6 @@ class FreshRSSClient(BaseClient):
             raise APIError("FreshRSS authentication response missing Auth token")
 
         self._auth_token = auth_data["Auth"]
-        # Clear password from memory now that we have a session token
-        self._password = None
         logger.info("Successfully authenticated to FreshRSS")
         return True
 
