@@ -3,6 +3,10 @@ set -euo pipefail
 
 # OSINT Agent Setup Script
 # Usage: ./setup.sh [--with-mcp]
+#
+# NOTE: This script is deprecated in favor of `make init`
+# It remains for backward compatibility but may be removed in future versions.
+# Please use: make init
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
