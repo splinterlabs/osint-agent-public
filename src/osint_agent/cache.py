@@ -14,9 +14,9 @@ from typing import Any, Callable, Optional
 def make_request_cache_key(
     method: str,
     url: str,
-    params: dict | None = None,
-    json_data: dict | None = None,
-    form_data: dict | None = None,
+    params: dict[str, Any] | None = None,
+    json_data: dict[str, Any] | None = None,
+    form_data: dict[str, Any] | None = None,
 ) -> str:
     """Generate a deterministic cache key from HTTP request parameters.
 

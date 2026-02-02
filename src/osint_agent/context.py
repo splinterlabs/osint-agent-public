@@ -32,7 +32,7 @@ class ContextManager:
     def __init__(self, context_dir: Path | str):
         self.context_dir = Path(context_dir)
         self.context_dir.mkdir(parents=True, exist_ok=True)
-        self._cache: dict[str, dict] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
 
     def _context_path(self, tier: str) -> Path:
         """Get path for a context tier file."""
@@ -225,7 +225,7 @@ class ContextManager:
         data[key].append(value)
         self._save_tier(tier, data)
 
-    def get_all(self) -> dict[str, dict]:
+    def get_all(self) -> dict[str, dict[str, Any]]:
         """Get all context tiers."""
         return {tier: self._load_tier(tier) for tier in self.TIERS}
 

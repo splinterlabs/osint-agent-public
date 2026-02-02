@@ -101,7 +101,7 @@ class ProxyConfig:
         return False
 
     @classmethod
-    def from_dict(cls, config: dict) -> "ProxyConfig":
+    def from_dict(cls, config: dict[str, Any]) -> "ProxyConfig":
         """Create ProxyConfig from dictionary."""
         return cls(
             http_proxy=config.get("http_proxy"),
@@ -186,9 +186,9 @@ class BaseClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[dict] = None,
-        json_data: Optional[dict] = None,
-        form_data: Optional[dict] = None,
+        params: Optional[dict[str, Any]] = None,
+        json_data: Optional[dict[str, Any]] = None,
+        form_data: Optional[dict[str, Any]] = None,
     ) -> bool:
         """Whether this request should use the response cache.
 
@@ -201,10 +201,10 @@ class BaseClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[dict] = None,
-        json_data: Optional[dict] = None,
-        form_data: Optional[dict] = None,
-        **kwargs,
+        params: Optional[dict[str, Any]] = None,
+        json_data: Optional[dict[str, Any]] = None,
+        form_data: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> Any:
         """Make HTTP request with retry logic and error handling."""
         from urllib.parse import urlparse
@@ -302,12 +302,12 @@ class BaseClient:
         get_usage_tracker().record_api_request(service, error=True)
         raise last_exception or APIError("Request failed after all retries")
 
-    def get(self, endpoint: str, params: Optional[dict] = None, **kwargs) -> Any:
+    def get(self, endpoint: str, params: Optional[dict[str, Any]] = None, **kwargs: Any) -> Any:
         """Make GET request."""
         return self._request("GET", endpoint, params=params, **kwargs)
 
     def post(
-        self, endpoint: str, json_data: Optional[dict] = None, form_data: Optional[dict] = None, **kwargs
+        self, endpoint: str, json_data: Optional[dict[str, Any]] = None, form_data: Optional[dict[str, Any]] = None, **kwargs: Any
     ) -> Any:
         """Make POST request."""
         return self._request("POST", endpoint, json_data=json_data, form_data=form_data, **kwargs)

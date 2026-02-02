@@ -85,7 +85,7 @@ def get_usage_tracker() -> UsageTracker:
     return _tracker
 
 
-def track_tool(tool_name: str) -> Callable:
+def track_tool(tool_name: str) -> Callable[..., Any]:
     """Decorator to record MCP tool invocations.
 
     Place inside (below) @mcp.tool() so it wraps the function directly:
@@ -96,7 +96,7 @@ def track_tool(tool_name: str) -> Callable:
             ...
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             tracker = get_usage_tracker()
