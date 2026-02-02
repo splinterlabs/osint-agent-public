@@ -32,7 +32,7 @@ class ContextManager:
     def __init__(self, context_dir: Path | str):
         self.context_dir = Path(context_dir)
         self.context_dir.mkdir(parents=True, exist_ok=True)
-        self._cache: dict[str, dict] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
 
     def _context_path(self, tier: str) -> Path:
         """Get path for a context tier file."""
@@ -51,7 +51,7 @@ class ContextManager:
 
         try:
             with open(path) as f:
-                data = json.load(f)
+                data: dict[str, Any] = json.load(f)
                 self._cache[tier] = data
                 return data
         except (json.JSONDecodeError, OSError) as e:
@@ -59,19 +59,37 @@ class ContextManager:
             return self._default_context(tier)
 
     def _save_tier(self, tier: str, data: dict[str, Any]) -> None:
-        """Save a context tier to disk (atomic write)."""
+        """Save a context tier to disk with secure permissions (atomic write).
+
+        SECURITY: Sets restrictive file permissions (0600) to prevent unauthorized access.
+        Context files may contain sensitive investigation data and IOCs.
+        """
         path = self._context_path(tier)
         data["last_modified"] = datetime.now(timezone.utc).isoformat()
 
-        fd, tmp_path = tempfile.mkstemp(
-            dir=self.context_dir,
-            prefix=f".{tier}_",
-            suffix=".json.tmp",
-        )
+        # Create temp file with secure permissions
+        old_umask = os.umask(0o077)  # Ensure temp file is created with 600
+        try:
+            fd, tmp_path = tempfile.mkstemp(
+                dir=self.context_dir,
+                prefix=f".{tier}_",
+                suffix=".json.tmp",
+            )
+        finally:
+            os.umask(old_umask)  # Restore original umask
+
         try:
             with open(fd, "w") as f:
                 json.dump(data, f, indent=2, default=str)
+
+            # Explicitly set restrictive permissions (owner read/write only)
+            os.chmod(tmp_path, 0o600)
+
+            # Atomic rename
             os.replace(tmp_path, path)
+
+            # Verify final file permissions (defense in depth)
+            os.chmod(path, 0o600)
         except Exception:
             Path(tmp_path).unlink(missing_ok=True)
             raise
@@ -207,7 +225,7 @@ class ContextManager:
         data[key].append(value)
         self._save_tier(tier, data)
 
-    def get_all(self) -> dict[str, dict]:
+    def get_all(self) -> dict[str, dict[str, Any]]:
         """Get all context tiers."""
         return {tier: self._load_tier(tier) for tier in self.TIERS}
 

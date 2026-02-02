@@ -80,7 +80,9 @@ class CISAKEVClient(BaseClient):
             date_added_str = vuln.get("dateAdded", "")
             if date_added_str:
                 try:
-                    date_added = datetime.strptime(date_added_str, "%Y-%m-%d")
+                    date_added = datetime.strptime(date_added_str, "%Y-%m-%d").replace(
+                        tzinfo=timezone.utc
+                    )
                     if date_added >= cutoff:
                         recent.append(self._parse_kev_entry(vuln))
                 except ValueError:

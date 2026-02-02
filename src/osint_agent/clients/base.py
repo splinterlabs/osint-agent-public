@@ -4,12 +4,26 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 from typing import Any, Optional
 
 import requests
 
 logger = logging.getLogger(__name__)
+
+# Matches sensitive query parameters/header values that may appear in exception messages.
+# Covers: key=, apiKey=, api_key=, Auth-Key:, Authorization:, Passwd=, password=
+_SENSITIVE_PARAM_RE = re.compile(
+    r"((?:key|apiKey|api_key|Auth-Key|Authorization|Passwd|password|token|secret)"
+    r"[=:]\s*)[^\s&,;\"']+",
+    re.IGNORECASE,
+)
+
+
+def _sanitize_message(msg: str) -> str:
+    """Redact sensitive parameter values from a string."""
+    return _SENSITIVE_PARAM_RE.sub(r"\1[REDACTED]", msg)
 
 
 class ProxyConfig:
@@ -87,7 +101,7 @@ class ProxyConfig:
         return False
 
     @classmethod
-    def from_dict(cls, config: dict) -> "ProxyConfig":
+    def from_dict(cls, config: dict[str, Any]) -> "ProxyConfig":
         """Create ProxyConfig from dictionary."""
         return cls(
             http_proxy=config.get("http_proxy"),
@@ -172,9 +186,9 @@ class BaseClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[dict] = None,
-        json_data: Optional[dict] = None,
-        form_data: Optional[dict] = None,
+        params: Optional[dict[str, Any]] = None,
+        json_data: Optional[dict[str, Any]] = None,
+        form_data: Optional[dict[str, Any]] = None,
     ) -> bool:
         """Whether this request should use the response cache.
 
@@ -187,10 +201,10 @@ class BaseClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[dict] = None,
-        json_data: Optional[dict] = None,
-        form_data: Optional[dict] = None,
-        **kwargs,
+        params: Optional[dict[str, Any]] = None,
+        json_data: Optional[dict[str, Any]] = None,
+        form_data: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> Any:
         """Make HTTP request with retry logic and error handling."""
         from urllib.parse import urlparse
@@ -257,7 +271,7 @@ class BaseClient:
                 get_usage_tracker().record_api_request(service)
 
                 # --- cache successful response ---
-                if cache_key is not None:
+                if cache_key is not None and self._response_cache is not None:
                     try:
                         self._response_cache.set(cache_key, data)
                     except Exception:
@@ -273,9 +287,10 @@ class BaseClient:
                 raise
 
             except requests.RequestException as e:
-                last_exception = APIError(f"Request failed: {e}")
+                sanitized = _sanitize_message(str(e))
+                last_exception = APIError(f"Request failed: {sanitized}")
                 logger.warning(
-                    f"Request failed on attempt {attempt + 1}/{self.MAX_RETRIES}: {e}"
+                    f"Request failed on attempt {attempt + 1}/{self.MAX_RETRIES}: {sanitized}"
                 )
 
             # Exponential backoff
@@ -287,12 +302,12 @@ class BaseClient:
         get_usage_tracker().record_api_request(service, error=True)
         raise last_exception or APIError("Request failed after all retries")
 
-    def get(self, endpoint: str, params: Optional[dict] = None, **kwargs) -> Any:
+    def get(self, endpoint: str, params: Optional[dict[str, Any]] = None, **kwargs: Any) -> Any:
         """Make GET request."""
         return self._request("GET", endpoint, params=params, **kwargs)
 
     def post(
-        self, endpoint: str, json_data: Optional[dict] = None, form_data: Optional[dict] = None, **kwargs
+        self, endpoint: str, json_data: Optional[dict[str, Any]] = None, form_data: Optional[dict[str, Any]] = None, **kwargs: Any
     ) -> Any:
         """Make POST request."""
         return self._request("POST", endpoint, json_data=json_data, form_data=form_data, **kwargs)

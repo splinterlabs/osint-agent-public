@@ -105,6 +105,10 @@ coverage.xml
 # Ruff
 .ruff_cache/
 
+# Validation and operation logs
+logs/
+*.log
+
 # Keep directory structure
 !**/.gitkeep
 rules/

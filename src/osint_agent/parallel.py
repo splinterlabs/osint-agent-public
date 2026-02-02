@@ -42,8 +42,9 @@ def _load_parallelism_config() -> dict[str, Any]:
         if config_path.exists():
             try:
                 with open(config_path) as f:
-                    data = json.load(f)
-                    return data.get("parallelism", {})
+                    data: dict[str, Any] = json.load(f)
+                    result: dict[str, Any] = data.get("parallelism", {})
+                    return result
             except (json.JSONDecodeError, IOError) as e:
                 logger.warning(f"Failed to load parallelism config: {e}")
 
@@ -66,7 +67,8 @@ def get_workers(key: str, default: int) -> int:
     config = get_config()
     if not config.get("enabled", True):
         return 1  # Disable parallelism by returning 1 worker
-    return config.get(key, default)
+    result: int = config.get(key, default)
+    return result
 
 
 @dataclass
