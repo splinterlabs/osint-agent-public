@@ -37,13 +37,13 @@ def now_iso() -> str:
 class STIXBundle:
     """Builder for STIX 2.1 bundles."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.objects: list[dict[str, Any]] = []
         self._seen_ids: set[str] = set()
 
     def add(self, obj: dict[str, Any]) -> str:
         """Add object to bundle, deduplicating by ID."""
-        obj_id = obj.get("id", "")
+        obj_id: str = obj.get("id", "")
         if obj_id not in self._seen_ids:
             self.objects.append(obj)
             self._seen_ids.add(obj_id)
@@ -178,10 +178,10 @@ def create_vulnerability(
     name: str,
     description: str,
     cvss_score: Optional[float] = None,
-    external_references: Optional[list[dict]] = None,
+    external_references: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
     """Create STIX Vulnerability object for CVE."""
-    vuln = {
+    vuln: dict[str, Any] = {
         "type": "vulnerability",
         "spec_version": "2.1",
         "id": generate_stix_id("vulnerability", cve_id),
@@ -227,7 +227,7 @@ def create_indicator(
         valid_from: When indicator becomes valid (ISO timestamp)
         confidence: Confidence level (0-100)
     """
-    indicator = {
+    indicator: dict[str, Any] = {
         "type": "indicator",
         "spec_version": "2.1",
         "id": generate_stix_id("indicator", pattern),
@@ -258,7 +258,7 @@ def create_report(
     object_refs: Optional[list[str]] = None,
     labels: Optional[list[str]] = None,
     confidence: Optional[int] = None,
-    external_references: Optional[list[dict]] = None,
+    external_references: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
     """Create STIX Report object.
 
@@ -272,7 +272,7 @@ def create_report(
         confidence: Confidence level (0-100)
         external_references: External links and sources
     """
-    report = {
+    report: dict[str, Any] = {
         "type": "report",
         "spec_version": "2.1",
         "id": generate_stix_id("report", f"{name}-{now_iso()}"),
@@ -303,7 +303,7 @@ def create_threat_actor(
     labels: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """Create STIX Threat Actor object."""
-    actor = {
+    actor: dict[str, Any] = {
         "type": "threat-actor",
         "spec_version": "2.1",
         "id": generate_stix_id("threat-actor", name),
@@ -373,7 +373,7 @@ def create_relationship(
     - "attributed-to": Incident attributed to Threat Actor
     - "related-to": General relationship
     """
-    rel = {
+    rel: dict[str, Any] = {
         "type": "relationship",
         "spec_version": "2.1",
         "id": generate_stix_id("relationship", f"{source_ref}-{relationship_type}-{target_ref}"),
