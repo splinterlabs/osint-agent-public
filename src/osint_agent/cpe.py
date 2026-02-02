@@ -222,7 +222,7 @@ def match_vendor_product(
 class WatchlistMatcher:
     """Matches CVE data against watchlist configuration."""
 
-    def __init__(self, watchlist: dict):
+    def __init__(self, watchlist: dict[str, Any]):
         """Initialize matcher with watchlist config.
 
         Args:
@@ -233,7 +233,7 @@ class WatchlistMatcher:
         self.cpe_patterns = watchlist.get("cpe_patterns", [])
         self.keywords = [k.lower() for k in watchlist.get("keywords", [])]
 
-    def match_cve(self, cve_data: dict) -> dict:
+    def match_cve(self, cve_data: dict[str, Any]) -> dict[str, Any]:
         """Check if CVE matches watchlist criteria.
 
         Args:
@@ -242,7 +242,7 @@ class WatchlistMatcher:
         Returns:
             Match result with details
         """
-        matches = {
+        matches: dict[str, Any] = {
             "matched": False,
             "vendor_matches": [],
             "product_matches": [],
