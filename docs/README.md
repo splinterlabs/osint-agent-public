@@ -22,6 +22,7 @@ Comprehensive documentation for OSINT Agent threat intelligence platform.
 ### Developer Documentation
 
 - **[Contributing Guide](../CONTRIBUTING.md)** - Development setup, testing, code style, and repository structure
+- **[AI Agent Instructions](../AGENTS.md)** - Project instructions for AI coding assistants (Claude Code, Cursor, Aider, etc.)
 - **[MCP Server Reference](../mcp-server/README.md)** - Complete tool reference for 60+ MCP tools
 - **[Security Policy](../SECURITY.md)** - Security practices and vulnerability reporting
 

@@ -103,6 +103,13 @@ When you start Claude Code, you'll automatically receive:
 - Watchlist alerts for monitored vendors
 - IOC database statistics
 
+## Project Instructions
+
+See [AGENTS.md](AGENTS.md) for AI agent-specific instructions (Claude Code, Cursor, Aider, etc.), including:
+- Where to save reports and exports
+- File organization guidelines
+- Project-specific conventions
+
 ## Configuration
 
 ### API Keys (Optional)
