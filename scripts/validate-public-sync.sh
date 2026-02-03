@@ -23,7 +23,7 @@ FORBIDDEN_PATTERNS=(
     "splinter@ntry"
     "github@ntry"
     "Sander Spierenburg"
-    "/Users/user"
+    "/Users/splinter"
 
     # Internal domains
     "\.ntry\.(net|home|local)"

@@ -1,0 +1,1 @@
+bc1844a05a8bf105391910966f62ed6339db5a76 2edbdf5b257ed895f8ad47607060bdec482ca534 validate-public-sync.sh
