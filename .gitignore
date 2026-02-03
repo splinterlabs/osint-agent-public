@@ -44,6 +44,9 @@ htmlcov/
 
 config/watchlist.json
 
+# MCP configuration (user-specific, use .mcp.json.example)
+.mcp.json
+
 # mypy
 .mypy_cache/
 

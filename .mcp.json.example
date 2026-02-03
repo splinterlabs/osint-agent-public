@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "osint-agent": {
+      "command": ".venv/bin/python",
+      "args": ["mcp-server/server.py"]
+    },
+    "maigret": {
+      "comment": "Optional: Username OSINT via remote MCP server",
+      "command": "npx",
+      "args": ["-y", "supergateway", "--sse", "https://mcp-maigret.example.com/sse"]
+    },
+    "whois-mcp": {
+      "comment": "Optional: WHOIS/RIR lookups (install with: uvx --from git+https://github.com/dadepo/whois-mcp.git whois-mcp)",
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/dadepo/whois-mcp.git", "whois-mcp"]
+    }
+  }
+}
