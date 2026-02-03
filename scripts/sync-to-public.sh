@@ -67,6 +67,21 @@ echo "Sync branch: $SYNC_BRANCH"
 echo "Dry run: $DRY_RUN"
 echo ""
 
+# Run pre-publish validation
+echo -e "${BLUE}Running pre-publish validation...${NC}"
+if [[ -f "$PROJECT_ROOT/scripts/validate-public-sync.sh" ]]; then
+    if ! "$PROJECT_ROOT/scripts/validate-public-sync.sh"; then
+        echo -e "${RED}Validation failed! Cannot sync to public repository.${NC}"
+        echo -e "${RED}Fix the violations above before syncing.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Validation passed${NC}"
+    echo ""
+else
+    echo -e "${YELLOW}⚠️  Warning: validate-public-sync.sh not found, skipping validation${NC}"
+    echo ""
+fi
+
 # Create temporary directory for staging
 STAGING_DIR=$(mktemp -d)
 trap "rm -rf $STAGING_DIR" EXIT
