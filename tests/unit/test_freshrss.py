@@ -7,6 +7,17 @@ from osint_agent.clients.base import APIError
 from osint_agent.clients.freshrss import FreshRSSClient
 
 
+@pytest.fixture(autouse=True)
+def _stub_keymanager(monkeypatch):
+    # CI runners have no keyring backend; the client fetches FRESHRSS_PASSWORD
+    # via osint_agent.keymanager.get_api_key, re-exported into freshrss as
+    # `_get_api_key`. Patch that name so tests don't hit a real keychain.
+    def fake(key_name: str) -> str | None:
+        return "testpass" if key_name == "FRESHRSS_PASSWORD" else None
+
+    monkeypatch.setattr("osint_agent.clients.freshrss._get_api_key", fake)
+
+
 class TestFreshRSSAuthentication:
     """Tests for FreshRSS authentication."""
 
@@ -28,8 +39,9 @@ class TestFreshRSSAuthentication:
 
         assert result is True
         assert client._auth_token == "test_auth_token"
-        # Password cleared from memory after successful auth
-        assert client._password is None
+        # Password is never stored on the client (fetched per-call from keymanager),
+        # so there is no `_password` attribute to assert against.
+        assert not hasattr(client, "_password")
 
     @responses.activate
     def test_authenticate_failure(self):
