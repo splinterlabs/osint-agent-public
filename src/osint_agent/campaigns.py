@@ -13,7 +13,7 @@ import tempfile
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +22,7 @@ from filelock import FileLock
 logger = logging.getLogger(__name__)
 
 
-class CampaignStatus(str, Enum):
+class CampaignStatus(StrEnum):
     """Campaign lifecycle status."""
 
     ACTIVE = "active"
@@ -32,7 +32,7 @@ class CampaignStatus(str, Enum):
     ARCHIVED = "archived"
 
 
-class ConfidenceLevel(str, Enum):
+class ConfidenceLevel(StrEnum):
     """Confidence level for attributions and links."""
 
     LOW = "low"
