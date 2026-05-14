@@ -215,7 +215,7 @@ class CorrelationEngine:
                     )
                     break
 
-        return related[:self.MAX_RELATED_IOCS]
+        return related[: self.MAX_RELATED_IOCS]
 
     def _calculate_confidence(
         self, sightings: list[dict[str, Any]], result: CorrelationResult
@@ -260,7 +260,10 @@ class CorrelationEngine:
         for technique_id, score in sorted(
             technique_matches.items(), key=lambda x: x[1], reverse=True
         ):
-            technique_info = {"id": technique_id, "confidence": min(score / self.BEHAVIOR_MATCH_DIVISOR, 1.0)}
+            technique_info = {
+                "id": technique_id,
+                "confidence": min(score / self.BEHAVIOR_MATCH_DIVISOR, 1.0),
+            }
 
             # Get full technique info if client available
             if self.attack_client:
@@ -271,7 +274,7 @@ class CorrelationEngine:
 
             results.append(technique_info)
 
-        return results[:self.MAX_TECHNIQUE_RESULTS]
+        return results[: self.MAX_TECHNIQUE_RESULTS]
 
     def cluster_iocs(
         self,
@@ -357,7 +360,9 @@ class CorrelationEngine:
         primary_ioc = next(i for i in iocs if i["type"] == primary_type)
 
         timestamps = [str(i.get("timestamp")) for i in iocs if i.get("timestamp")]
-        time_window: tuple[str, str] | None = (min(timestamps), max(timestamps)) if timestamps else None
+        time_window: tuple[str, str] | None = (
+            (min(timestamps), max(timestamps)) if timestamps else None
+        )
 
         return ClusterResult(
             cluster_id=str(uuid.uuid4())[:8],
@@ -388,9 +393,7 @@ class CorrelationEngine:
 
         return dict(results)
 
-    def correlate_campaign_iocs(
-        self, campaign_id: str
-    ) -> dict[str, Any]:
+    def correlate_campaign_iocs(self, campaign_id: str) -> dict[str, Any]:
         """Perform deep correlation analysis on campaign IOCs.
 
         Args:

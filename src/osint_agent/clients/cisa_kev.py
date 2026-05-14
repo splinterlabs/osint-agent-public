@@ -39,8 +39,7 @@ class CISAKEVClient(BaseClient):
         self._cache_time = now
         # Build CVE index for O(1) lookups
         self._cve_index = {
-            vuln.get("cveID", "").upper(): vuln
-            for vuln in response.get("vulnerabilities", [])
+            vuln.get("cveID", "").upper(): vuln for vuln in response.get("vulnerabilities", [])
         }
         return response
 
@@ -80,9 +79,7 @@ class CISAKEVClient(BaseClient):
             date_added_str = vuln.get("dateAdded", "")
             if date_added_str:
                 try:
-                    date_added = datetime.strptime(date_added_str, "%Y-%m-%d").replace(
-                        tzinfo=UTC
-                    )
+                    date_added = datetime.strptime(date_added_str, "%Y-%m-%d").replace(tzinfo=UTC)
                     if date_added >= cutoff:
                         recent.append(self._parse_kev_entry(vuln))
                 except ValueError:
