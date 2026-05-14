@@ -64,6 +64,7 @@ class STIXBundle:
         """Save bundle to file (atomic write)."""
         import os
         import tempfile
+
         target = Path(path)
         fd, tmp_path = tempfile.mkstemp(
             dir=target.parent,
@@ -106,9 +107,7 @@ def create_ipv6_observable(ip: str, labels: list[str] | None = None) -> dict[str
     }
 
 
-def create_domain_observable(
-    domain: str, labels: list[str] | None = None
-) -> dict[str, Any]:
+def create_domain_observable(domain: str, labels: list[str] | None = None) -> dict[str, Any]:
     """Create STIX Domain Name observable."""
     return {
         "type": "domain-name",
@@ -154,9 +153,7 @@ def create_file_hash_observable(
     }
 
 
-def create_email_observable(
-    email: str, labels: list[str] | None = None
-) -> dict[str, Any]:
+def create_email_observable(email: str, labels: list[str] | None = None) -> dict[str, Any]:
     """Create STIX Email Address observable."""
     return {
         "type": "email-addr",

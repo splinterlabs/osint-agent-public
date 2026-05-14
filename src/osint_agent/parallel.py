@@ -138,9 +138,7 @@ def parallel_map(
     results: list[R | None] = [None] * len(items_list)
 
     with ThreadPoolExecutor(max_workers=metrics.workers) as executor:
-        future_to_idx = {
-            executor.submit(fn, item): idx for idx, item in enumerate(items_list)
-        }
+        future_to_idx = {executor.submit(fn, item): idx for idx, item in enumerate(items_list)}
 
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]

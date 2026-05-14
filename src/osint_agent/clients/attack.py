@@ -16,7 +16,9 @@ from .base import BaseClient, ProxyConfig
 logger = logging.getLogger(__name__)
 
 # ATT&CK STIX repository URLs
-ATTACK_STIX_URL = "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"
+ATTACK_STIX_URL = (
+    "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"
+)
 
 
 class ATTACKClient(BaseClient):
@@ -161,9 +163,7 @@ class ATTACKClient(BaseClient):
             Technique details or None if not found
         """
         self._load_data()
-        technique = self._techniques.get(technique_id) or self._techniques.get(
-            technique_id.lower()
-        )
+        technique = self._techniques.get(technique_id) or self._techniques.get(technique_id.lower())
 
         if not technique:
             return None
@@ -275,9 +275,7 @@ class ATTACKClient(BaseClient):
             Software details or None if not found
         """
         self._load_data()
-        software = self._software.get(software_id) or self._software.get(
-            software_id.lower()
-        )
+        software = self._software.get(software_id) or self._software.get(software_id.lower())
 
         if not software:
             return None
@@ -424,9 +422,7 @@ class ATTACKClient(BaseClient):
 
         return results
 
-    def map_behavior_to_techniques(
-        self, behavior: str, limit: int = 5
-    ) -> list[dict[str, Any]]:
+    def map_behavior_to_techniques(self, behavior: str, limit: int = 5) -> list[dict[str, Any]]:
         """Map a behavior description to likely ATT&CK techniques.
 
         This is a simple keyword-based matching. For production use,

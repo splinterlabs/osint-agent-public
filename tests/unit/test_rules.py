@@ -1,6 +1,5 @@
 """Unit tests for YARA and Sigma rule generation."""
 
-
 from osint_agent.rules import (
     _escape_yara_string,
     _generate_uuid_from_title,

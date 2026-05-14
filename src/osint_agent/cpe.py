@@ -311,9 +311,7 @@ class WatchlistMatcher:
                     results.append(match)
 
             # Also check vendor/product lists
-            matched, vendor, product = match_vendor_product(
-                cpe, self.vendors, self.products
-            )
+            matched, vendor, product = match_vendor_product(cpe, self.vendors, self.products)
             if matched:
                 parts = parse_cpe23(cpe)
                 results.append(

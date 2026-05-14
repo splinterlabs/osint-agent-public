@@ -86,31 +86,21 @@ class OTXClient(BaseClient):
         if indicator_type in ("ipv4", "ipv6"):
             try:
                 result["geo"] = self.get_indicator(indicator_type, indicator, "geo")
-                result["reputation"] = self.get_indicator(
-                    indicator_type, indicator, "reputation"
-                )
-                result["passive_dns"] = self.get_indicator(
-                    indicator_type, indicator, "passive_dns"
-                )
+                result["reputation"] = self.get_indicator(indicator_type, indicator, "reputation")
+                result["passive_dns"] = self.get_indicator(indicator_type, indicator, "passive_dns")
             except Exception as e:
                 logger.warning("Failed to fetch IP enrichment for %s: %s", indicator, e)
 
         elif indicator_type == "domain":
             try:
-                result["passive_dns"] = self.get_indicator(
-                    indicator_type, indicator, "passive_dns"
-                )
-                result["url_list"] = self.get_indicator(
-                    indicator_type, indicator, "url_list"
-                )
+                result["passive_dns"] = self.get_indicator(indicator_type, indicator, "passive_dns")
+                result["url_list"] = self.get_indicator(indicator_type, indicator, "url_list")
             except Exception as e:
                 logger.warning("Failed to fetch domain enrichment for %s: %s", indicator, e)
 
         elif indicator_type in ("md5", "sha1", "sha256"):
             try:
-                result["malware"] = self.get_indicator(
-                    indicator_type, indicator, "analysis"
-                )
+                result["malware"] = self.get_indicator(indicator_type, indicator, "analysis")
             except Exception as e:
                 logger.warning("Failed to fetch file analysis for %s: %s", indicator, e)
 
