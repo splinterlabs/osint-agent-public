@@ -8,7 +8,7 @@ dependencies = [
     "requests>=2.31,<3.0",
     "keyring>=25.0,<26.0",
     "aiohttp>=3.9,<4.0",
-    "filelock>=3.13,<4.0",
+    "filelock>=3.13,<5.0",
 ]
 
 [project.optional-dependencies]
